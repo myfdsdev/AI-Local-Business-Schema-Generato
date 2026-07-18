@@ -68,7 +68,10 @@ const websiteScanSchema = new mongoose.Schema(
     startedAt: { type: Date, default: null },
     completedAt: { type: Date, default: null },
   },
-  { timestamps: true },
+  // `errors` is a reserved Mongoose path; the spec mandates the field name, so
+  // acknowledge it rather than rename. Only accessed via markModified/direct
+  // assignment, never Mongoose's validation-error accessor.
+  { timestamps: true, suppressReservedKeysWarning: true },
 );
 
 websiteScanSchema.index({ projectId: 1, createdAt: -1 });

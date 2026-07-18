@@ -38,7 +38,8 @@ const validationResultSchema = new mongoose.Schema(
     score: { type: Number, default: 0, min: 0, max: 100 },
     validatedAt: { type: Date, default: () => new Date() },
   },
-  { timestamps: true },
+  // `errors` is a reserved Mongoose path; the spec mandates this field name.
+  { timestamps: true, suppressReservedKeysWarning: true },
 );
 
 validationResultSchema.index({ schemaId: 1, validatedAt: -1 });

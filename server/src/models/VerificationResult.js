@@ -44,7 +44,8 @@ const verificationResultSchema = new mongoose.Schema(
 
     verifiedAt: { type: Date, default: () => new Date() },
   },
-  { timestamps: true },
+  // `errors` is a reserved Mongoose path; the spec mandates this field name.
+  { timestamps: true, suppressReservedKeysWarning: true },
 );
 
 verificationResultSchema.index({ schemaId: 1, verifiedAt: -1 });

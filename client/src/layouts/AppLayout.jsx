@@ -4,6 +4,8 @@ import {
   LayoutDashboard,
   LogOut,
   MapPin,
+  PenLine,
+  Search,
   Settings,
   Shield,
   Sparkles,
@@ -29,6 +31,8 @@ const NAV_ITEMS = [
   { to: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/app/projects', label: 'Projects', icon: FolderKanban },
   { to: '/app/generate', label: 'Generate schema', icon: Sparkles },
+  { to: '/app/keywords', label: 'Keyword research', icon: Search },
+  { to: '/app/content', label: 'Content writer', icon: PenLine },
   { to: '/app/locations', label: 'Locations', icon: MapPin },
   { to: '/app/settings', label: 'Settings', icon: Settings },
 ];

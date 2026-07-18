@@ -41,6 +41,12 @@ export async function geminiChatJson({ system, user, temperature = 0, maxTokens 
           // Forces syntactically valid JSON, matching the prompt's "parseable by
           // JSON.parse()" contract (Gemini's equivalent of response_format).
           responseMimeType: 'application/json',
+          // Disable "thinking" on 2.5 flash models. Thinking tokens count
+          // against maxOutputTokens, and for these structured extraction tasks
+          // they add latency/cost and can starve the actual JSON output,
+          // truncating it into unparseable text. (2.5-pro requires thinking; use
+          // a flash model, which is the default.)
+          thinkingConfig: { thinkingBudget: 0 },
         },
       },
       {

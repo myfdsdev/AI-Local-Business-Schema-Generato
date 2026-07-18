@@ -104,7 +104,10 @@ userSchema
     return this._plainPassword;
   });
 
-userSchema.pre('save', async function hashPassword(next) {
+// Hashing runs on `pre('validate')`, not `pre('save')`: Mongoose validates
+// before its save hooks, so hashing any later would let the `required`
+// constraint on `passwordHash` fail while a password was in fact supplied.
+userSchema.pre('validate', async function hashPassword(next) {
   if (!this._plainPassword) return next();
 
   try {

@@ -11,8 +11,13 @@ import { connectDatabase, disconnectDatabase, mongoose } from '../../src/config/
 let mongoServer = null;
 let app = null;
 
+// Pin the mongod version. Without this, mongodb-memory-server resolves the
+// "latest" version over the network on first use, which stalls in restricted
+// environments. Override with MONGOMS_VERSION if a different build is cached.
+const MONGOD_VERSION = process.env.MONGOMS_VERSION || '7.0.24';
+
 export async function startTestServer() {
-  mongoServer = await MongoMemoryServer.create();
+  mongoServer = await MongoMemoryServer.create({ binary: { version: MONGOD_VERSION } });
   await connectDatabase(mongoServer.getUri());
 
   // Imported after the DB connects so model index builds have a live connection.

@@ -49,8 +49,10 @@ async function assertProjectQuota(user) {
 export async function createProject({ user, payload }, req) {
   const { url, normalizedDomain } = validateWebsiteUrl(payload.websiteUrl);
 
-  await assertProjectQuota(user);
-
+  // Duplicate check runs before the quota check on purpose: if the user is
+  // re-submitting a site they already have, "you already have this project" is
+  // more useful than "plan limit reached" — and on a limit-1 plan the quota
+  // check would otherwise mask the duplicate entirely.
   const duplicate = await BusinessProject.findOne({
     userId: user._id,
     normalizedDomain,
@@ -67,6 +69,8 @@ export async function createProject({ user, payload }, req) {
       ],
     });
   }
+
+  await assertProjectQuota(user);
 
   const project = await BusinessProject.create({
     ...payload,

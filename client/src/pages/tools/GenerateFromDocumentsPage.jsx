@@ -1,17 +1,27 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { CheckCircle2, FileSearch, FileUp, Loader2, Sparkles, Wand2 } from 'lucide-react';
+import {
+  CheckCircle2,
+  FileSearch,
+  FileText,
+  FileUp,
+  Loader2,
+  Paperclip,
+  Sparkles,
+  Wand2,
+  X,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import { schemaGenApi } from '@/api/schemaGen';
 import { toApiError } from '@/api/client';
-import { FileDropzone } from '@/components/forms/FileDropzone';
 import { JsonLdResult } from '@/components/schema/JsonLdResult';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
+import { ACCEPTED_EXTENSIONS, formatSize, validateFiles } from '@/lib/files';
 
 const STEPS = [
   { icon: FileUp, title: 'Add your info', text: 'Upload documents or paste business details.' },

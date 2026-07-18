@@ -125,55 +125,94 @@ export default function GenerateFromDocumentsPage() {
       )}
 
       <div className="space-y-6">
+        {/* Unified "Add your info" composer: type and/or attach files together. */}
         <Card>
-          <CardContent className="space-y-5 p-6">
+          <CardContent className="space-y-4 p-6">
             <div>
-              <Label className="text-sm font-semibold">Upload documents</Label>
-              <p className="mb-3 mt-0.5 text-xs text-muted-foreground">
-                About page, business profile, menu, flyer — anything with your real details.
+              <p className="text-sm font-semibold">Add your info</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Attach documents or just describe your business — we combine everything you send.
               </p>
-              <FileDropzone
-                files={files}
-                onChange={setFiles}
-                onReject={(reasons) => toast.error(reasons.join(' · '))}
-                disabled={mutation.isPending}
-              />
             </div>
 
-            {/* Divider */}
-            <div className="flex items-center gap-3">
-              <div className="h-px flex-1 bg-border" />
-              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">and / or</span>
-              <div className="h-px flex-1 bg-border" />
-            </div>
+            {files.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {files.map((file, index) => (
+                  <span
+                    key={`${file.name}-${file.size}-${index}`}
+                    className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted/60 py-1.5 pl-2.5 pr-2 text-xs"
+                  >
+                    <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="max-w-[180px] truncate font-medium">{file.name}</span>
+                    <span className="text-muted-foreground">{formatSize(file.size)}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(index)}
+                      disabled={mutation.isPending}
+                      aria-label={`Remove ${file.name}`}
+                      className="rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
 
-            <div className="space-y-1.5">
-              <Label htmlFor="notes" className="text-sm font-semibold">
-                Type business details
-              </Label>
+            <div
+              onDragOver={(event) => {
+                event.preventDefault();
+                if (!mutation.isPending) setDragging(true);
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={handleDrop}
+              className={cn(
+                'rounded-xl border-2 bg-background p-2 transition-colors',
+                isDragging ? 'border-primary bg-primary/5' : 'border-input',
+              )}
+            >
               <Textarea
                 id="notes"
-                rows={5}
+                rows={4}
                 value={notes}
                 disabled={mutation.isPending}
                 onChange={(event) => setNotes(event.target.value)}
-                placeholder="e.g. Sharma's Kitchen, a North Indian restaurant at 12 MG Road, Jodhpur, Rajasthan 342001, India. Phone +91 9876543210. Open Mon-Sat 11am-11pm. Website sharmaskitchen.in."
+                placeholder="Describe your business — name, address, phone, hours, website. Or drop files here…"
+                className="resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
               />
-              <p className="text-xs text-muted-foreground">
-                Include the business name, address, phone, hours, and website. Only real details —
-                anything you don&apos;t provide is left out.
-              </p>
+              <div className="flex items-center justify-between gap-2 px-1 pb-0.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={mutation.isPending}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Paperclip className="h-4 w-4" />
+                  Attach files
+                </Button>
+                <Button onClick={() => mutation.mutate()} disabled={!canSubmit}>
+                  {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  {mutation.isPending ? 'Generating…' : 'Generate'}
+                </Button>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept={ACCEPTED_EXTENSIONS.join(',')}
+                className="sr-only"
+                onChange={(event) => {
+                  addFiles(event.target.files);
+                  event.target.value = '';
+                }}
+              />
             </div>
 
-            <Button
-              onClick={() => mutation.mutate()}
-              disabled={!canSubmit}
-              size="lg"
-              className="w-full sm:w-auto"
-            >
-              {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              {mutation.isPending ? 'Generating…' : 'Generate JSON-LD'}
-            </Button>
+            <p className="text-xs text-muted-foreground">
+              Supports {ACCEPTED_EXTENSIONS.join(', ')} · Max 5.0 MB per file. We never invent data —
+              missing fields are left out.
+            </p>
           </CardContent>
         </Card>
 

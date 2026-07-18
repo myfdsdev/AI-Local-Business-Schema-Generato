@@ -38,11 +38,28 @@ export default function GenerateFromDocumentsPage() {
   const [files, setFiles] = useState([]);
   const [notes, setNotes] = useState('');
   const [result, setResult] = useState(null);
+  const [isDragging, setDragging] = useState(false);
+  const fileInputRef = useRef(null);
 
   const { data: capabilities } = useQuery({
     queryKey: ['schema-generator', 'capabilities'],
     queryFn: schemaGenApi.capabilities,
   });
+
+  // Files and typed text combine into one "Add your info" composer.
+  const addFiles = (incoming) => {
+    const { accepted, rejections } = validateFiles([...incoming], files);
+    if (accepted.length) setFiles((current) => [...current, ...accepted]);
+    if (rejections.length) toast.error(rejections.join(' · '));
+  };
+
+  const removeFile = (index) => setFiles((current) => current.filter((_, i) => i !== index));
+
+  const handleDrop = (event) => {
+    event.preventDefault();
+    setDragging(false);
+    if (!mutation.isPending) addFiles(event.dataTransfer.files);
+  };
 
   const mutation = useMutation({
     mutationFn: () => schemaGenApi.generate({ files, notes }),

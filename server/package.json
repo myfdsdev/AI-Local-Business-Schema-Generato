@@ -10,6 +10,7 @@
   },
   "scripts": {
     "dev": "node --watch src/server.js",
+    "dev:memory": "node scripts/dev-memory.mjs",
     "start": "node src/server.js",
     "seed": "node src/seed/index.js",
     "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\""

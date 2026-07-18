@@ -1,6 +1,12 @@
 import { z } from 'zod';
 
-import { ACCOUNT_TYPE_VALUES, ONBOARDING_GOAL_VALUES } from '../config/constants.js';
+import {
+  ACCOUNT_TYPE_VALUES,
+  ONBOARDING_BUSINESS_CATEGORIES,
+  ONBOARDING_EXPERIENCE_LEVELS,
+  ONBOARDING_GOAL_VALUES,
+  ONBOARDING_LOCATION_BANDS,
+} from '../config/constants.js';
 
 /**
  * Password policy: length is the dominant factor in resistance to guessing, so
@@ -68,7 +74,14 @@ export const updateProfileSchema = z.object({
 
 export const onboardingSchema = z.object({
   accountType: z.enum(ACCOUNT_TYPE_VALUES).optional(),
+  companyName: z.string().trim().max(160).optional(),
   goal: z.enum(ONBOARDING_GOAL_VALUES).optional(),
+  businessCategory: z.enum(ONBOARDING_BUSINESS_CATEGORIES).optional(),
+  locationCount: z.enum(ONBOARDING_LOCATION_BANDS).optional(),
+  experienceLevel: z.enum(ONBOARDING_EXPERIENCE_LEVELS).optional(),
+  // Sent when the user skips the questionnaire; still marks it done so it stops
+  // showing on every login.
+  skipped: z.boolean().optional(),
 });
 
 export const deleteAccountSchema = z.object({

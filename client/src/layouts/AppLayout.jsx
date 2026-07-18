@@ -1,22 +1,18 @@
-import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   FolderKanban,
   LayoutDashboard,
   LogOut,
   MapPin,
-  Menu,
   Settings,
   Shield,
   Sparkles,
   User as UserIcon,
-  X,
 } from 'lucide-react';
 
 import { Logo } from '@/components/common/Logo';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +24,7 @@ import {
 import { cn, initials } from '@/lib/utils';
 import { useAuth } from '@/store/AuthContext';
 
+// Primary navigation, now surfaced from the avatar menu instead of a sidebar.
 const NAV_ITEMS = [
   { to: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/app/projects', label: 'Projects', icon: FolderKanban },
@@ -36,35 +33,15 @@ const NAV_ITEMS = [
   { to: '/app/settings', label: 'Settings', icon: Settings },
 ];
 
-function NavItems({ onNavigate }) {
-  return (
-    <nav className="flex flex-1 flex-col gap-1">
-      {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-        <NavLink
-          key={to}
-          to={to}
-          onClick={onNavigate}
-          className={({ isActive }) =>
-            cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-              isActive
-                ? 'bg-primary/10 text-primary'
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-            )
-          }
-        >
-          <Icon className="h-4 w-4" />
-          {label}
-        </NavLink>
-      ))}
-    </nav>
-  );
-}
-
+/**
+ * Top-bar layout: a single header with the brand on the left and an account
+ * menu on the right. All navigation lives inside the avatar dropdown, so the
+ * content area spans the full width with no sidebar.
+ */
 export function AppLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
 
   const handleLogout = async () => {
     await logout();
@@ -72,56 +49,15 @@ export function AppLayout() {
   };
 
   const isAdmin = user?.role === 'admin';
+  const isActive = (to) => location.pathname === to || location.pathname.startsWith(`${to}/`);
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Sidebar — desktop */}
-      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-border bg-card px-4 py-5 lg:flex">
-        <NavLink to="/app/dashboard" className="mb-6 px-1">
-          <Logo />
-        </NavLink>
-        <NavItems />
-        {isAdmin && (
-          <NavLink
-            to="/admin/dashboard"
-            className={({ isActive }) =>
-              cn(
-                'mt-1 flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-              )
-            }
-          >
-            <Shield className="h-4 w-4" />
-            Admin
+      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+          <NavLink to="/app/dashboard" aria-label="LocalSchema AI home">
+            <Logo />
           </NavLink>
-        )}
-      </aside>
-
-      {/* Mobile drawer */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="absolute inset-0 bg-foreground/20" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 flex w-64 flex-col border-r border-border bg-card px-4 py-5">
-            <div className="mb-6 flex items-center justify-between px-1">
-              <Logo />
-              <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)}>
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-            <NavItems onNavigate={() => setMobileOpen(false)} />
-          </aside>
-        </div>
-      )}
-
-      {/* Main column */}
-      <div className="lg:pl-64">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur sm:px-6">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)}>
-              <Menu className="h-5 w-5" />
-            </Button>
-            <Logo className="lg:hidden" showText={false} />
-          </div>
 
           <div className="flex items-center gap-3">
             <Badge variant="secondary" className="hidden sm:inline-flex">
@@ -130,13 +66,17 @@ export function AppLayout() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <button
+                  className="flex items-center gap-2 rounded-full outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label="Open menu"
+                >
                   <Avatar>
                     <AvatarFallback>{initials(user?.name) || <UserIcon className="h-4 w-4" />}</AvatarFallback>
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+
+              <DropdownMenuContent align="end" className="w-60">
                 <DropdownMenuLabel>
                   <div className="flex flex-col">
                     <span className="truncate text-sm font-medium">{user?.name}</span>
@@ -144,15 +84,34 @@ export function AppLayout() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+
+                {/* Primary navigation */}
+                {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+                  <DropdownMenuItem
+                    key={to}
+                    onClick={() => navigate(to)}
+                    className={cn(isActive(to) && 'bg-accent text-accent-foreground')}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {label}
+                  </DropdownMenuItem>
+                ))}
+
+                {isAdmin && (
+                  <DropdownMenuItem
+                    onClick={() => navigate('/admin/dashboard')}
+                    className={cn(isActive('/admin') && 'bg-accent text-accent-foreground')}
+                  >
+                    <Shield className="h-4 w-4" />
+                    Admin
+                  </DropdownMenuItem>
+                )}
+
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => navigate('/app/profile')}>
                   <UserIcon className="h-4 w-4" />
                   Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/app/settings')}>
-                  <Settings className="h-4 w-4" />
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
                   <LogOut className="h-4 w-4" />
                   Sign out
@@ -160,13 +119,13 @@ export function AppLayout() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-          {!user?.emailVerified && <VerifyEmailBanner email={user?.email} />}
-          <Outlet />
-        </main>
-      </div>
+      <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+        {!user?.emailVerified && <VerifyEmailBanner email={user?.email} />}
+        <Outlet />
+      </main>
     </div>
   );
 }

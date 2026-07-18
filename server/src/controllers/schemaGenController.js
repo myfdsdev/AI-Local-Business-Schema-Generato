@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import {
+  activeProvider,
   generateFromDocuments,
   isAiConfigured,
 } from '../services/ai/schemaGenerationService.js';
@@ -17,6 +18,7 @@ export const capabilities = asyncHandler(async (_req, res) =>
     message: 'OK',
     data: {
       aiConfigured: isAiConfigured(),
+      aiProvider: activeProvider(),
       maxFileBytes: uploadLimits.MAX_FILE_BYTES,
       maxFiles: uploadLimits.MAX_FILES,
       supportedExtensions: uploadLimits.SUPPORTED_EXTENSIONS,

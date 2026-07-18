@@ -31,6 +31,23 @@ export const ONBOARDING_GOALS = Object.freeze({
 
 export const ONBOARDING_GOAL_VALUES = Object.freeze(Object.values(ONBOARDING_GOALS));
 
+// Post-login onboarding questionnaire answers (spec section 4, step 2). These
+// are high-level bands, distinct from the granular SchemaType catalog.
+export const ONBOARDING_BUSINESS_CATEGORIES = Object.freeze([
+  'food',
+  'health',
+  'home_services',
+  'beauty',
+  'retail',
+  'professional',
+  'lodging',
+  'other',
+]);
+
+export const ONBOARDING_LOCATION_BANDS = Object.freeze(['single', '2_5', '6_20', '20_plus']);
+
+export const ONBOARDING_EXPERIENCE_LEVELS = Object.freeze(['new', 'some', 'advanced']);
+
 export const USER_STATUS = Object.freeze({
   ACTIVE: 'active',
   SUSPENDED: 'suspended',

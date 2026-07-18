@@ -26,8 +26,15 @@ const baseSchema = z.object({
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
 
+  // AI provider for schema generation. Each provider has its own key + model;
+  // the active one is selected by AI_PROVIDER.
+  AI_PROVIDER: z.enum(['openai', 'gemini']).default('openai'),
+
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_MODEL: z.string().default('gpt-4o-mini'),
+
+  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
 
   EMAIL_ENABLED: bool(false),
   SMTP_HOST: z.string().optional(),

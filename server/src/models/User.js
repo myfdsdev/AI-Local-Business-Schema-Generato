@@ -4,7 +4,10 @@ import mongoose from 'mongoose';
 import {
   ACCOUNT_TYPE_VALUES,
   INITIAL_SCAN_CREDITS,
+  ONBOARDING_BUSINESS_CATEGORIES,
+  ONBOARDING_EXPERIENCE_LEVELS,
   ONBOARDING_GOAL_VALUES,
+  ONBOARDING_LOCATION_BANDS,
   PLAN_SLUGS,
   PLAN_SLUG_VALUES,
   ROLES,
@@ -49,9 +52,13 @@ const userSchema = new mongoose.Schema(
 
     status: { type: String, enum: USER_STATUS_VALUES, default: USER_STATUS.ACTIVE, index: true },
 
+    // Answers to the post-login onboarding questionnaire (spec section 4).
     onboarding: {
       completed: { type: Boolean, default: false },
       goal: { type: String, enum: ONBOARDING_GOAL_VALUES, default: null },
+      businessCategory: { type: String, enum: ONBOARDING_BUSINESS_CATEGORIES, default: null },
+      locationCount: { type: String, enum: ONBOARDING_LOCATION_BANDS, default: null },
+      experienceLevel: { type: String, enum: ONBOARDING_EXPERIENCE_LEVELS, default: null },
       completedAt: { type: Date, default: null },
     },
 

@@ -8,35 +8,29 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { applyApiErrorToForm } from '@/hooks/useApiForm';
-import { ACCOUNT_TYPE_OPTIONS, registerSchema } from '@/schemas/auth.schema';
+import { registerSchema } from '@/schemas/auth.schema';
 import { useAuth } from '@/store/AuthContext';
 
+/**
+ * Registration collects only the essentials (name, email, password). Business
+ * name and account type are asked during the post-login onboarding
+ * questionnaire instead, keeping sign-up short.
+ */
 export default function RegisterPage() {
   const { register: registerUser } = useAuth();
   const navigate = useNavigate();
 
   const form = useForm({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: '', email: '', companyName: '', accountType: undefined, password: '' },
+    defaultValues: { name: '', email: '', password: '' },
   });
 
   const {
     register,
     handleSubmit,
-    setValue,
-    watch,
     formState: { errors, isSubmitting },
   } = form;
-
-  const accountType = watch('accountType');
 
   const onSubmit = async (values) => {
     try {
@@ -71,30 +65,6 @@ export default function RegisterPage() {
         </Field>
 
         <Field
-          id="companyName"
-          label="Business or agency name"
-          error={errors.companyName?.message}
-          hint="Optional — you can add this later."
-        >
-          <Input autoComplete="organization" placeholder="Bella Vista Trattoria" {...register('companyName')} />
-        </Field>
-
-        <Field id="accountType" label="Account type" error={errors.accountType?.message} required>
-          <Select value={accountType} onValueChange={(value) => setValue('accountType', value, { shouldValidate: true })}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select account type" />
-            </SelectTrigger>
-            <SelectContent>
-              {ACCOUNT_TYPE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
-
-        <Field
           id="password"
           label="Password"
           error={errors.password?.message}
@@ -115,6 +85,10 @@ export default function RegisterPage() {
         <Link to="/login" className="font-medium text-primary hover:underline">
           Sign in
         </Link>
+      </p>
+
+      <p className="mt-4 text-center text-xs text-muted-foreground">
+        We&apos;ll ask a few quick questions about your business after you sign in.
       </p>
     </div>
   );

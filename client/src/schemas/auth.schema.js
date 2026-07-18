@@ -13,14 +13,11 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Enter your password.'),
 });
 
+// Business name and account type are collected during onboarding, so sign-up
+// asks only for the essentials.
 export const registerSchema = z.object({
   name: z.string().trim().min(2, 'Enter your full name.').max(120),
   email: z.string().min(1, 'Enter your email.').email('Enter a valid email address.'),
-  companyName: z.string().trim().max(160).optional(),
-  accountType: z.enum(
-    ['local_business', 'freelancer', 'seo_agency', 'web_developer', 'marketing_consultant'],
-    { errorMap: () => ({ message: 'Select an account type.' }) },
-  ),
   password,
 });
 

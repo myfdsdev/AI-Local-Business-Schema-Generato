@@ -33,7 +33,13 @@ export default function LoginPage() {
     try {
       const user = await login(values);
       toast.success(`Welcome back, ${user.name.split(' ')[0]}.`);
-      navigate(redirectTo, { replace: true });
+      // New users answer the welcome questionnaire before landing in the app.
+      // A pending protected-route redirect still wins so deep links aren't lost.
+      if (!user.onboarding?.completed && !location.state?.from) {
+        navigate('/onboarding', { replace: true });
+      } else {
+        navigate(redirectTo, { replace: true });
+      }
     } catch (error) {
       applyApiErrorToForm(error, form);
     }

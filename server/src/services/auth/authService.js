@@ -273,16 +273,32 @@ export async function updateProfile({ userId, updates }, req) {
   return user;
 }
 
-export async function completeOnboarding({ userId, goal, accountType }) {
+export async function completeOnboarding({
+  userId,
+  accountType,
+  companyName,
+  goal,
+  businessCategory,
+  locationCount,
+  experienceLevel,
+}) {
   const user = await User.findById(userId);
   if (!user) throw ApiError.notFound('User not found.');
 
+  // accountType also drives the account role, so it updates both fields.
   if (accountType) {
     user.accountType = accountType;
     user.role = user.role === ROLES.ADMIN ? ROLES.ADMIN : resolveRole(accountType);
   }
+  // Business/agency name, collected on the first onboarding step.
+  if (companyName !== undefined) user.companyName = companyName;
+  // Each answer is optional so a partial "skip" still records what was given.
   if (goal) user.onboarding.goal = goal;
+  if (businessCategory) user.onboarding.businessCategory = businessCategory;
+  if (locationCount) user.onboarding.locationCount = locationCount;
+  if (experienceLevel) user.onboarding.experienceLevel = experienceLevel;
 
+  // Marked complete whether finished or skipped, so it stops prompting on login.
   user.onboarding.completed = true;
   user.onboarding.completedAt = new Date();
   await user.save();

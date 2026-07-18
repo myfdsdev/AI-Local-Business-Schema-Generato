@@ -1,6 +1,6 @@
 import { extractFromFiles } from '../extraction/documentParser.js';
 import { parseAndValidate } from '../validation/jsonLdValidator.js';
-import { chatJson, isAiConfigured } from './openaiClient.js';
+import { activeProvider, chatJson, isAiConfigured } from './aiClient.js';
 import { SCHEMA_SYSTEM_PROMPT } from './schemaPrompt.js';
 
 /** Cap on the combined document text sent to the model. */
@@ -52,11 +52,24 @@ export async function generateFromDocuments({ files = [], notes = '' }) {
   });
 
   const validation = parseAndValidate(completion.content);
+  const graph = validation.graph;
+
+  // Did the model actually find a business to describe? An empty or type-less
+  // graph means the source had no business details (e.g. a code README), which
+  // is the model correctly refusing to invent data — not an app failure. The
+  // UI uses this to show guidance instead of a wall of validation errors.
+  const hasBusinessData = Boolean(
+    graph &&
+      typeof graph === 'object' &&
+      graph['@type'] &&
+      (graph.name || graph.address || graph.telephone || graph.url),
+  );
 
   return {
-    jsonLd: validation.graph,
-    jsonLdString: validation.graph ? JSON.stringify(validation.graph, null, 2) : completion.content,
+    jsonLd: graph,
+    jsonLdString: graph ? JSON.stringify(graph, null, 2) : completion.content,
     valid: validation.valid,
+    hasBusinessData,
     errors: validation.errors,
     warnings: validation.warnings,
     recommendations: validation.recommendations,
@@ -77,6 +90,6 @@ export async function generateFromText(notes) {
   return generateFromDocuments({ files: [], notes });
 }
 
-export { isAiConfigured };
+export { isAiConfigured, activeProvider };
 
-export default { generateFromDocuments, generateFromText, isAiConfigured };
+export default { generateFromDocuments, generateFromText, isAiConfigured, activeProvider };

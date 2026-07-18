@@ -14,12 +14,12 @@ import logger from '../../config/logger.js';
  */
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 
-export function isAiConfigured() {
+export function isOpenaiConfigured() {
   return Boolean(env.OPENAI_API_KEY);
 }
 
-export async function chatJson({ system, user, temperature = 0, maxTokens = 1500 }) {
-  if (!isAiConfigured()) {
+export async function openaiChatJson({ system, user, temperature = 0, maxTokens = 1500 }) {
+  if (!isOpenaiConfigured()) {
     throw new ApiError(503, 'AI generation is not configured on this server yet.', {
       code: 'AI_NOT_CONFIGURED',
       errors: [{ field: 'server', message: 'Set OPENAI_API_KEY to enable AI generation.' }],
@@ -62,10 +62,16 @@ export async function chatJson({ system, user, temperature = 0, maxTokens = 1500
     if (error instanceof ApiError) throw error;
 
     const status = error.response?.status;
-    logger.error('OpenAI request failed', { status, message: error.message });
+    // Surface OpenAI's own error text in the server log to make key/model
+    // problems diagnosable without guesswork.
+    const providerMessage = error.response?.data?.error?.message;
+    logger.error('OpenAI request failed', { status, message: error.message, providerMessage });
 
     if (status === 401) {
-      throw new ApiError(502, 'The AI service rejected the configured API key.', { code: 'AI_AUTH_FAILED' });
+      throw new ApiError(502, 'The AI service rejected the configured API key.', {
+        code: 'AI_AUTH_FAILED',
+        errors: providerMessage ? [{ field: 'OPENAI_API_KEY', message: providerMessage }] : [],
+      });
     }
     if (status === 429) {
       throw new ApiError(503, 'The AI service is rate limited right now. Please try again shortly.', {
@@ -79,4 +85,4 @@ export async function chatJson({ system, user, temperature = 0, maxTokens = 1500
   }
 }
 
-export default { chatJson, isAiConfigured };
+export default { openaiChatJson, isOpenaiConfigured };

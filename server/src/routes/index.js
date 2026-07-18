@@ -5,6 +5,7 @@ import authRoutes from './auth.routes.js';
 import catalogRoutes from './catalog.routes.js';
 import dashboardRoutes from './dashboard.routes.js';
 import projectRoutes from './project.routes.js';
+import schemaGenRoutes from './schemaGen.routes.js';
 
 /**
  * API v1 (spec section 19). Phase 2+ routers — scans, business data, schemas,
@@ -20,6 +21,7 @@ router.use('/auth', authRoutes);
 router.use('/catalog', catalogRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/projects', projectRoutes);
+router.use('/schema-generator', schemaGenRoutes);
 router.use('/admin', adminRoutes);
 
 export default router;

@@ -8,6 +8,7 @@ import {
   Menu,
   Settings,
   Shield,
+  Sparkles,
   User as UserIcon,
   X,
 } from 'lucide-react';
@@ -30,6 +31,7 @@ import { useAuth } from '@/store/AuthContext';
 const NAV_ITEMS = [
   { to: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/app/projects', label: 'Projects', icon: FolderKanban },
+  { to: '/app/generate', label: 'Generate schema', icon: Sparkles },
   { to: '/app/locations', label: 'Locations', icon: MapPin },
   { to: '/app/settings', label: 'Settings', icon: Settings },
 ];

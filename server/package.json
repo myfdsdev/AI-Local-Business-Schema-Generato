@@ -13,7 +13,8 @@
     "dev:memory": "node scripts/dev-memory.mjs",
     "start": "node src/server.js",
     "seed": "node src/seed/index.js",
-    "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\""
+    "test": "node --test tests/index.test.js",
+    "test:files": "node --test --test-isolation=none \"tests/**/*.test.js\""
   },
   "dependencies": {
     "ajv": "^8.17.1",

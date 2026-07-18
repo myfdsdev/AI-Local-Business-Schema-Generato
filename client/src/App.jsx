@@ -17,6 +17,7 @@ import DashboardPage from '@/pages/dashboard/DashboardPage';
 import ProjectsListPage from '@/pages/projects/ProjectsListPage';
 import NewProjectPage from '@/pages/projects/NewProjectPage';
 import ProjectDetailPage from '@/pages/projects/ProjectDetailPage';
+import GenerateFromDocumentsPage from '@/pages/tools/GenerateFromDocumentsPage';
 import ProfilePage from '@/pages/settings/ProfilePage';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import NotFoundPage from '@/pages/NotFoundPage';
@@ -52,6 +53,7 @@ export default function App() {
           <Route path="projects" element={<ProjectsListPage />} />
           <Route path="projects/new" element={<NewProjectPage />} />
           <Route path="projects/:projectId" element={<ProjectDetailPage />} />
+          <Route path="generate" element={<GenerateFromDocumentsPage />} />
           <Route
             path="locations"
             element={

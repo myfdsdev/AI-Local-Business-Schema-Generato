@@ -15,6 +15,7 @@ import {
   User as UserIcon,
 } from 'lucide-react';
 
+import { ChatWidget } from '@/components/assistant/ChatWidget';
 import { Logo } from '@/components/common/Logo';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -166,6 +167,9 @@ export function AppLayout() {
       <main className="mx-auto w-full max-w-screen-2xl px-4 py-6 sm:px-6 sm:py-8">
         <Outlet />
       </main>
+
+      {/* Assistant is available on every signed-in screen. */}
+      <ChatWidget />
     </div>
   );
 }

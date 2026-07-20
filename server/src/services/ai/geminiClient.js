@@ -7,8 +7,7 @@ import logger from '../../config/logger.js';
 
 /**
  * Google Gemini (Generative Language API) client over axios. Mirrors the OpenAI
- * client's contract — same { system, user } in, same { content } out — so the
- * generation service is provider-agnostic.
+ * client's contract so the callers stay provider-agnostic.
  *
  * The key travels in the `x-goog-api-key` header, never in the URL query string,
  * so it can't leak via logs or referrers.
@@ -19,35 +18,42 @@ export function isGeminiConfigured() {
   return Boolean(env.GEMINI_API_KEY);
 }
 
-export async function geminiChatJson({ system, user, temperature = 0, maxTokens = 1500 }) {
+/**
+ * Core request. `json: true` forces a parseable JSON response (used by the
+ * extraction/generation prompts); `json: false` returns prose, which is what the
+ * assistant chat needs.
+ */
+async function geminiGenerate({ system, messages, temperature = 0, maxTokens = 1500, json }) {
   if (!isGeminiConfigured()) {
-    throw new ApiError(503, 'AI generation is not configured on this server yet.', {
+    throw new ApiError(503, 'AI is not configured on this server yet.', {
       code: 'AI_NOT_CONFIGURED',
-      errors: [{ field: 'server', message: 'Set GEMINI_API_KEY to enable AI generation.' }],
+      errors: [{ field: 'server', message: 'Set GEMINI_API_KEY to enable AI features.' }],
     });
   }
 
   const url = `${GEMINI_BASE}/${encodeURIComponent(env.GEMINI_MODEL)}:generateContent`;
+
+  const generationConfig = {
+    temperature,
+    maxOutputTokens: maxTokens,
+    // Disable "thinking" on 2.5 flash models. Thinking tokens count against
+    // maxOutputTokens and can starve the actual output, truncating it.
+    // (2.5-pro requires thinking; use a flash model, which is the default.)
+    thinkingConfig: { thinkingBudget: 0 },
+  };
+  if (json) generationConfig.responseMimeType = 'application/json';
 
   try {
     const response = await axios.post(
       url,
       {
         systemInstruction: { parts: [{ text: system }] },
-        contents: [{ role: 'user', parts: [{ text: user }] }],
-        generationConfig: {
-          temperature,
-          maxOutputTokens: maxTokens,
-          // Forces syntactically valid JSON, matching the prompt's "parseable by
-          // JSON.parse()" contract (Gemini's equivalent of response_format).
-          responseMimeType: 'application/json',
-          // Disable "thinking" on 2.5 flash models. Thinking tokens count
-          // against maxOutputTokens, and for these structured extraction tasks
-          // they add latency/cost and can starve the actual JSON output,
-          // truncating it into unparseable text. (2.5-pro requires thinking; use
-          // a flash model, which is the default.)
-          thinkingConfig: { thinkingBudget: 0 },
-        },
+        // Gemini names the assistant role "model".
+        contents: messages.map((message) => ({
+          role: message.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: message.content }],
+        })),
+        generationConfig,
       },
       {
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
@@ -59,7 +65,6 @@ export async function geminiChatJson({ system, user, temperature = 0, maxTokens 
     const content = candidate?.content?.parts?.map((part) => part.text ?? '').join('') ?? '';
 
     if (!content) {
-      // A blocked prompt yields no text but a finishReason such as SAFETY.
       const reason = candidate?.finishReason || response.data?.promptFeedback?.blockReason;
       throw new ApiError(502, 'The AI service returned no usable content.', {
         code: 'AI_EMPTY_RESPONSE',
@@ -74,7 +79,6 @@ export async function geminiChatJson({ system, user, temperature = 0, maxTokens 
     const status = error.response?.status;
     const providerError = error.response?.data?.error;
     const providerMessage = providerError?.message;
-    // Gemini flags a bad key as INVALID_ARGUMENT/API_KEY_INVALID or PERMISSION_DENIED.
     const reason = providerError?.details?.find((detail) => detail.reason)?.reason;
 
     logger.error('Gemini request failed', { status, reason, message: error.message, providerMessage });
@@ -108,4 +112,20 @@ export async function geminiChatJson({ system, user, temperature = 0, maxTokens 
   }
 }
 
-export default { geminiChatJson, isGeminiConfigured };
+/** Single-turn call that must return parseable JSON. */
+export function geminiChatJson({ system, user, temperature = 0, maxTokens = 1500 }) {
+  return geminiGenerate({
+    system,
+    messages: [{ role: 'user', content: user }],
+    temperature,
+    maxTokens,
+    json: true,
+  });
+}
+
+/** Multi-turn conversational call returning prose. */
+export function geminiChatText({ system, messages, temperature = 0.4, maxTokens = 1200 }) {
+  return geminiGenerate({ system, messages, temperature, maxTokens, json: false });
+}
+
+export default { geminiChatJson, geminiChatText, isGeminiConfigured };

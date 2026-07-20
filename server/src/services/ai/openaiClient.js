@@ -85,4 +85,63 @@ export async function openaiChatJson({ system, user, temperature = 0, maxTokens 
   }
 }
 
-export default { openaiChatJson, isOpenaiConfigured };
+/**
+ * Multi-turn conversational call returning prose (no response_format), the
+ * counterpart to openaiChatJson for the assistant chat.
+ */
+export async function openaiChatText({ system, messages, temperature = 0.4, maxTokens = 1200 }) {
+  if (!isOpenaiConfigured()) {
+    throw new ApiError(503, 'AI is not configured on this server yet.', {
+      code: 'AI_NOT_CONFIGURED',
+      errors: [{ field: 'server', message: 'Set OPENAI_API_KEY to enable AI features.' }],
+    });
+  }
+
+  try {
+    const response = await axios.post(
+      OPENAI_URL,
+      {
+        model: env.OPENAI_MODEL,
+        temperature,
+        max_tokens: maxTokens,
+        messages: [{ role: 'system', content: system }, ...messages],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 45_000,
+      },
+    );
+
+    const content = response.data?.choices?.[0]?.message?.content;
+    if (!content) throw new Error('Empty completion from model.');
+
+    return { content, model: response.data?.model ?? env.OPENAI_MODEL, usage: response.data?.usage ?? null };
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+
+    const status = error.response?.status;
+    const providerMessage = error.response?.data?.error?.message;
+    logger.error('OpenAI chat request failed', { status, message: error.message, providerMessage });
+
+    if (status === 401) {
+      throw new ApiError(502, 'The AI service rejected the configured API key.', {
+        code: 'AI_AUTH_FAILED',
+        errors: providerMessage ? [{ field: 'OPENAI_API_KEY', message: providerMessage }] : [],
+      });
+    }
+    if (status === 429) {
+      throw new ApiError(503, 'The AI service is rate limited right now. Please try again shortly.', {
+        code: ERROR_CODES.RATE_LIMITED,
+      });
+    }
+    throw new ApiError(502, 'The AI service could not complete this request. Please try again.', {
+      code: 'AI_REQUEST_FAILED',
+      cause: error,
+    });
+  }
+}
+
+export default { openaiChatJson, openaiChatText, isOpenaiConfigured };

@@ -1,6 +1,6 @@
 import { env } from '../../config/env.js';
-import { isGeminiConfigured, geminiChatJson } from './geminiClient.js';
-import { isOpenaiConfigured, openaiChatJson } from './openaiClient.js';
+import { isGeminiConfigured, geminiChatJson, geminiChatText } from './geminiClient.js';
+import { isOpenaiConfigured, openaiChatJson, openaiChatText } from './openaiClient.js';
 
 /**
  * Provider-agnostic entry point for AI generation. The active provider is
@@ -12,8 +12,18 @@ import { isOpenaiConfigured, openaiChatJson } from './openaiClient.js';
  * same { content, model } output.
  */
 const PROVIDERS = {
-  openai: { chatJson: openaiChatJson, isConfigured: isOpenaiConfigured, keyVar: 'OPENAI_API_KEY' },
-  gemini: { chatJson: geminiChatJson, isConfigured: isGeminiConfigured, keyVar: 'GEMINI_API_KEY' },
+  openai: {
+    chatJson: openaiChatJson,
+    chatText: openaiChatText,
+    isConfigured: isOpenaiConfigured,
+    keyVar: 'OPENAI_API_KEY',
+  },
+  gemini: {
+    chatJson: geminiChatJson,
+    chatText: geminiChatText,
+    isConfigured: isGeminiConfigured,
+    keyVar: 'GEMINI_API_KEY',
+  },
 };
 
 export function activeProvider() {
@@ -37,4 +47,9 @@ export function chatJson(args) {
   return provider().chatJson(args);
 }
 
-export default { chatJson, isAiConfigured, activeProvider, activeKeyVar };
+/** Multi-turn conversation returning prose (assistant chat). */
+export function chatText(args) {
+  return provider().chatText(args);
+}
+
+export default { chatJson, chatText, isAiConfigured, activeProvider, activeKeyVar };

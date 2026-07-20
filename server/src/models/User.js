@@ -40,13 +40,6 @@ const userSchema = new mongoose.Schema(
     companyName: { type: String, trim: true, maxlength: 160, default: '' },
     profileImage: { type: String, default: '' },
 
-    emailVerified: { type: Boolean, default: false },
-    verificationToken: { type: String, default: null, select: false },
-    verificationTokenExpires: { type: Date, default: null, select: false },
-
-    resetPasswordToken: { type: String, default: null, select: false },
-    resetPasswordExpires: { type: Date, default: null, select: false },
-
     plan: { type: String, enum: PLAN_SLUG_VALUES, default: PLAN_SLUGS.FREE },
     scanCredits: { type: Number, default: INITIAL_SCAN_CREDITS, min: 0 },
 
@@ -75,10 +68,6 @@ const userSchema = new mongoose.Schema(
       virtuals: true,
       transform(_doc, ret) {
         delete ret.passwordHash;
-        delete ret.verificationToken;
-        delete ret.verificationTokenExpires;
-        delete ret.resetPasswordToken;
-        delete ret.resetPasswordExpires;
         delete ret.tokenVersion;
         delete ret.__v;
         return ret;
@@ -86,9 +75,6 @@ const userSchema = new mongoose.Schema(
     },
   },
 );
-
-userSchema.index({ resetPasswordToken: 1 }, { sparse: true });
-userSchema.index({ verificationToken: 1 }, { sparse: true });
 
 userSchema.virtual('isAdmin').get(function isAdmin() {
   return this.role === ROLES.ADMIN;

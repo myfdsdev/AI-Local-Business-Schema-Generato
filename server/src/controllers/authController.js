@@ -18,7 +18,6 @@ function presentUser(user) {
     accountType: user.accountType,
     companyName: user.companyName,
     profileImage: user.profileImage,
-    emailVerified: user.emailVerified,
     plan: user.plan,
     scanCredits: user.scanCredits,
     status: user.status,
@@ -80,47 +79,6 @@ export const logout = asyncHandler(async (req, res) => {
   return sendSuccess(res, { message: 'Signed out.', data: {} });
 });
 
-export const verifyEmail = asyncHandler(async (req, res) => {
-  const user = await authService.verifyEmail(req.body.token, req);
-
-  return sendSuccess(res, {
-    message: 'Your email address is verified.',
-    data: { user: presentUser(user) },
-  });
-});
-
-export const resendVerification = asyncHandler(async (req, res) => {
-  await authService.resendVerification(req.body.email);
-
-  // Deliberately identical whether or not the address exists.
-  return sendSuccess(res, {
-    message: 'If that address needs verification, a new link is on its way.',
-    data: {},
-  });
-});
-
-export const forgotPassword = asyncHandler(async (req, res) => {
-  await authService.requestPasswordReset(req.body.email, req);
-
-  return sendSuccess(res, {
-    message: 'If an account exists for that address, a reset link is on its way.',
-    data: {},
-  });
-});
-
-export const resetPassword = asyncHandler(async (req, res) => {
-  await authService.resetPassword(req.body, req);
-
-  // No session is issued here: resetting invalidates every token, and the user
-  // must sign in with the new password to prove they hold it.
-  clearRefreshCookie(res);
-
-  return sendSuccess(res, {
-    message: 'Your password has been reset. Sign in with your new password.',
-    data: {},
-  });
-});
-
 export const me = asyncHandler(async (req, res) =>
   sendSuccess(res, { message: 'OK', data: { user: presentUser(req.user) } }),
 );
@@ -173,10 +131,6 @@ export default {
   login,
   refresh,
   logout,
-  verifyEmail,
-  resendVerification,
-  forgotPassword,
-  resetPassword,
   me,
   updateProfile,
   changePassword,

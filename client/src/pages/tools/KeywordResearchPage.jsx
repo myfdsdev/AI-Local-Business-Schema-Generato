@@ -76,7 +76,7 @@ export default function KeywordResearchPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div>
       <div className="mb-6 flex items-start gap-4">
         <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary sm:flex">
           <Search className="h-6 w-6" />
@@ -101,40 +101,64 @@ export default function KeywordResearchPage() {
         </Alert>
       )}
 
-      <Card className="mb-6">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,480px)_minmax(0,1fr)] xl:items-start">
+        <Card className="xl:sticky xl:top-24">
         <CardContent className="p-6">
-          <form onSubmit={handleSubmit((values) => mutation.mutate(values))} className="space-y-4" noValidate>
-            <div className="grid gap-4 sm:grid-cols-2">
+          {/* Single column: this card sits in a 480px sticky column, so a
+              two-up grid would squeeze each field to ~215px. */}
+          <form onSubmit={handleSubmit((values) => mutation.mutate(values))} className="space-y-5" noValidate>
+            <div className="space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                About the business
+              </p>
               <Field id="businessName" label="Business name" error={errors.businessName?.message} required>
-                <Input placeholder="Sharma's Kitchen" {...register('businessName')} />
+                <Input placeholder="Bella Vista Trattoria" {...register('businessName')} />
               </Field>
               <Field id="category" label="Category" error={errors.category?.message} required>
-                <Input placeholder="North Indian restaurant" {...register('category')} />
+                <Input placeholder="Italian restaurant" {...register('category')} />
               </Field>
-              <Field id="location" label="Location" error={errors.location?.message} hint="City / region">
-                <Input placeholder="Jodhpur, Rajasthan" {...register('location')} />
+              <Field id="location" label="Location" error={errors.location?.message} hint="City or region — drives local keywords">
+                <Input placeholder="London, UK" {...register('location')} />
               </Field>
-              <Field id="website" label="Website" error={errors.website?.message}>
-                <Input placeholder="sharmaskitchen.in" {...register('website')} />
+              <Field id="website" label="Website" error={errors.website?.message} hint="Optional">
+                <Input placeholder="bellavista.com" {...register('website')} />
               </Field>
             </div>
-            <Field id="services" label="Key services / products" error={errors.services?.message} hint="Optional, comma-separated">
-              <Input placeholder="dine-in, home delivery, catering, thali" {...register('services')} />
-            </Field>
-            <Field id="seedKeywords" label="Seed keywords to expand on" error={errors.seedKeywords?.message} hint="Optional">
-              <Input placeholder="best thali, veg restaurant" {...register('seedKeywords')} />
-            </Field>
 
-            <div className="flex justify-end">
-              <Button type="submit" size="lg" disabled={mutation.isPending} className="w-full sm:w-auto">
-                {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                {mutation.isPending ? 'Researching…' : 'Find keywords'}
-              </Button>
+            <div className="h-px bg-border" />
+
+            <div className="space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Fine-tune <span className="normal-case font-normal">(optional)</span>
+              </p>
+              <Field
+                id="services"
+                label="Key services or products"
+                error={errors.services?.message}
+                hint="Comma-separated"
+              >
+                <Input placeholder="dine-in, takeaway, catering, private dining" {...register('services')} />
+              </Field>
+              <Field
+                id="seedKeywords"
+                label="Seed keywords to expand on"
+                error={errors.seedKeywords?.message}
+                hint="Terms you already know you want to rank for"
+              >
+                <Input placeholder="wood-fired pizza, family restaurant" {...register('seedKeywords')} />
+              </Field>
             </div>
+
+            <Button type="submit" size="lg" disabled={mutation.isPending} className="w-full">
+              {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              {mutation.isPending ? 'Researching…' : 'Find keywords'}
+            </Button>
           </form>
         </CardContent>
       </Card>
 
+      {/* Results column */}
+      <div>
       {errorInfo && (
         <Alert variant="destructive" className="mb-6">
           <AlertTitle>Couldn&apos;t research keywords</AlertTitle>
@@ -151,6 +175,21 @@ export default function KeywordResearchPage() {
             <Skeleton key={index} className="h-24 w-full rounded-xl" />
           ))}
         </div>
+      )}
+
+      {!result && !errorInfo && !mutation.isPending && (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center gap-2 px-6 py-16 text-center">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <Search className="h-5 w-5" />
+            </div>
+            <h3 className="text-sm font-semibold">Your keyword ideas will appear here</h3>
+            <p className="max-w-sm text-xs text-muted-foreground">
+              Describe the business on the left, then pick the keywords you want and send them
+              straight to the content writer.
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       {result && (
@@ -213,6 +252,8 @@ export default function KeywordResearchPage() {
           )}
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 }

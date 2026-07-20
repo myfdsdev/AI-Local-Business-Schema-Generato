@@ -36,13 +36,6 @@ const baseSchema = z.object({
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
 
-  EMAIL_ENABLED: bool(false),
-  SMTP_HOST: z.string().optional(),
-  SMTP_PORT: z.coerce.number().int().positive().optional(),
-  SMTP_USER: z.string().optional(),
-  SMTP_PASS: z.string().optional(),
-  EMAIL_FROM: z.string().default('LocalSchema AI <no-reply@localschema.ai>'),
-
   ADMIN_EMAIL: z.string().email().optional(),
   ADMIN_PASSWORD: z.string().optional(),
   DEMO_USER_EMAIL: z.string().email().optional(),
@@ -54,25 +47,7 @@ const baseSchema = z.object({
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
 });
 
-/**
- * Feature-gated requirements: a variable is only mandatory once the feature that
- * consumes it is switched on. Keeps local setup to the "Required" block alone.
- */
-const schema = baseSchema.superRefine((value, ctx) => {
-  if (value.EMAIL_ENABLED) {
-    for (const key of ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS']) {
-      if (!value[key]) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: [key],
-          message: `${key} is required when EMAIL_ENABLED=true`,
-        });
-      }
-    }
-  }
-});
-
-const parsed = schema.safeParse(process.env);
+const parsed = baseSchema.safeParse(process.env);
 
 if (!parsed.success) {
   const details = parsed.error.issues

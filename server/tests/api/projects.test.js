@@ -3,16 +3,13 @@ import { after, before, beforeEach, describe, it } from 'node:test';
 
 import request from 'supertest';
 
-import { User } from '../../src/models/index.js';
 import { authHeader, registerUser, seedPlans } from '../helpers/factories.js';
 import { clearDatabase, getApp, startTestServer, stopTestServer } from '../helpers/testServer.js';
 
-/** Registers a user and marks their email verified (project creation requires it). */
+/** Registers a user and returns their access token. */
 async function verifiedUser(overrides = {}) {
   const { response } = await registerUser(overrides);
-  const token = response.body.data.accessToken;
-  await User.updateOne({ email: response.body.data.user.email }, { emailVerified: true });
-  return { token, user: response.body.data.user };
+  return { token: response.body.data.accessToken, user: response.body.data.user };
 }
 
 const VALID_PROJECT = {
@@ -49,17 +46,6 @@ describe('Projects API', () => {
       assert.equal(response.status, 201);
       assert.equal(response.body.data.project.businessName, 'Bella Vista Trattoria');
       assert.equal(response.body.data.project.normalizedDomain, 'bella-vista.example');
-    });
-
-    it('requires a verified email', async () => {
-      const { response } = await registerUser();
-      const response2 = await request(getApp())
-        .post('/api/v1/projects')
-        .set(authHeader(response.body.data.accessToken))
-        .send(VALID_PROJECT);
-
-      assert.equal(response2.status, 403);
-      assert.equal(response2.body.code, 'EMAIL_NOT_VERIFIED');
     });
 
     it('rejects an unsafe (private IP) website URL', async () => {

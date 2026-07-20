@@ -42,19 +42,6 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Enter your password.').max(128),
 });
 
-export const verifyEmailSchema = z.object({
-  token: z.string().min(10, 'This verification link is invalid.'),
-});
-
-export const resendVerificationSchema = z.object({ email: emailSchema });
-
-export const forgotPasswordSchema = z.object({ email: emailSchema });
-
-export const resetPasswordSchema = z.object({
-  token: z.string().min(10, 'This reset link is invalid.'),
-  password: passwordSchema,
-});
-
 export const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, 'Enter your current password.'),

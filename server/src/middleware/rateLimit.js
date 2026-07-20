@@ -46,14 +46,6 @@ export const authLimiter = build({
   keyGenerator: (req) => `${req.ip}:${String(req.body?.email ?? '').toLowerCase()}`,
 });
 
-/** Tighter still: these endpoints send email, so abuse costs real money. */
-export const emailLimiter = build({
-  windowMs: 60 * 60 * 1000,
-  max: 5,
-  message: 'Too many email requests. Please wait an hour and try again.',
-  keyGenerator: (req) => `${req.ip}:${String(req.body?.email ?? '').toLowerCase()}`,
-});
-
 export const scanLimiter = build({
   windowMs: 60 * 1000,
   max: 5,
@@ -61,4 +53,4 @@ export const scanLimiter = build({
   keyGenerator: (req) => String(req.user?._id ?? req.ip),
 });
 
-export default { generalLimiter, authLimiter, emailLimiter, scanLimiter };
+export default { generalLimiter, authLimiter, scanLimiter };

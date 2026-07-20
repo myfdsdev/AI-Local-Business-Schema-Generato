@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   CheckCircle2,
+  FileCode,
   FileSearch,
   FileText,
   FileUp,
@@ -80,7 +81,7 @@ export default function GenerateFromDocumentsPage() {
   const canSubmit = (files.length > 0 || notes.trim().length > 0) && !mutation.isPending;
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div>
       {/* Header */}
       <div className="mb-6 flex items-start gap-4">
         <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary sm:flex">
@@ -124,7 +125,9 @@ export default function GenerateFromDocumentsPage() {
         </Alert>
       )}
 
-      <div className="space-y-6">
+      {/* Input left, results right on wide screens; stacks below xl. */}
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,480px)_minmax(0,1fr)] xl:items-start">
+        <div className="space-y-6 xl:sticky xl:top-24">
         {/* Unified "Add your info" composer: type and/or attach files together. */}
         <Card>
           <CardContent className="space-y-4 p-6">
@@ -215,7 +218,10 @@ export default function GenerateFromDocumentsPage() {
             </p>
           </CardContent>
         </Card>
+        </div>
 
+        {/* Results column */}
+        <div className="space-y-6">
         {errorInfo && (
           <Alert variant="destructive">
             <AlertTitle>Couldn&apos;t generate the schema</AlertTitle>
@@ -275,6 +281,32 @@ export default function GenerateFromDocumentsPage() {
         )}
 
         {result && result.hasBusinessData !== false && <JsonLdResult result={result} />}
+
+        {/* Placeholder so the results column isn't blank before first run. */}
+        {!result && !errorInfo && !mutation.isPending && (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center gap-2 px-6 py-16 text-center">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <FileCode className="h-5 w-5" />
+              </div>
+              <h3 className="text-sm font-semibold">Your JSON-LD will appear here</h3>
+              <p className="max-w-sm text-xs text-muted-foreground">
+                Add your business info on the left and hit Generate. You&apos;ll get validated
+                schema you can copy or download.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {mutation.isPending && (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center gap-2 px-6 py-16 text-center">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Reading your info and building the schema…</p>
+            </CardContent>
+          </Card>
+        )}
+        </div>
       </div>
     </div>
   );

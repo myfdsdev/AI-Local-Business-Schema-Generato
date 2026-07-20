@@ -66,10 +66,7 @@ export default function NewProjectPage() {
       toast.success('Project created successfully');
       navigate(`/app/projects/${project.id ?? project._id}`);
     } catch (error) {
-      const parsed = applyApiErrorToForm(error, form);
-      if (parsed.code === 'EMAIL_NOT_VERIFIED') {
-        toast.error('Verify your email address before creating a project.');
-      }
+      applyApiErrorToForm(error, form);
     }
   };
 

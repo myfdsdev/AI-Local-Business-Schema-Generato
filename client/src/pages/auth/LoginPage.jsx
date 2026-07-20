@@ -63,17 +63,9 @@ export default function LoginPage() {
           <Input type="email" autoComplete="email" placeholder="you@example.com" {...register('email')} />
         </Field>
 
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Password</span>
-            <Link to="/forgot-password" className="text-xs font-medium text-primary hover:underline">
-              Forgot password?
-            </Link>
-          </div>
-          <Field id="password" error={errors.password?.message}>
-            <Input type="password" autoComplete="current-password" placeholder="••••••••" {...register('password')} />
-          </Field>
-        </div>
+        <Field id="password" label="Password" error={errors.password?.message}>
+          <Input type="password" autoComplete="current-password" placeholder="••••••••" {...register('password')} />
+        </Field>
 
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}

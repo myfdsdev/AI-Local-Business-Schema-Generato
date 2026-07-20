@@ -37,7 +37,6 @@ export const updateUserSchema = z.object({
   role: z.enum(ROLE_VALUES).optional(),
   plan: z.enum(PLAN_SLUG_VALUES).optional(),
   companyName: z.string().trim().max(160).optional(),
-  emailVerified: z.boolean().optional(),
 });
 
 export const suspendUserSchema = z.object({

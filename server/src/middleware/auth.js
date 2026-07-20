@@ -80,18 +80,4 @@ export function requireRole(...roles) {
 
 export const requireAdmin = requireRole(ROLES.ADMIN);
 
-/** Gates actions that should not run for an unconfirmed email address. */
-export function requireVerifiedEmail(req, _res, next) {
-  if (!req.user) return next(ApiError.unauthorized('You must be signed in to do that.'));
-
-  if (!req.user.emailVerified && req.user.role !== ROLES.ADMIN) {
-    return next(
-      ApiError.forbidden('Verify your email address before using this feature.', {
-        code: ERROR_CODES.EMAIL_NOT_VERIFIED,
-      }),
-    );
-  }
-  return next();
-}
-
-export default { authenticate, optionalAuthenticate, requireRole, requireAdmin, requireVerifiedEmail };
+export default { authenticate, optionalAuthenticate, requireRole, requireAdmin };

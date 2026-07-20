@@ -9,18 +9,8 @@ import {
 import logger from '../../config/logger.js';
 import { CreditTransaction, Plan, Subscription, User } from '../../models/index.js';
 import ApiError from '../../utils/ApiError.js';
-import { DURATIONS, addDuration, generateRawToken, hashToken } from '../../utils/tokens.js';
 import { AUDIT_ACTIONS, recordAudit } from '../audit/auditService.js';
-import {
-  sendPasswordChangedEmail,
-  sendPasswordResetEmail,
-  sendVerificationEmail,
-  sendWelcomeEmail,
-} from '../email/emailService.js';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from './tokenService.js';
-
-const VERIFICATION_TTL = 24 * DURATIONS.HOUR;
-const RESET_TTL = 1 * DURATIONS.HOUR;
 
 /**
  * Chooses the account role from what the user says they are at signup.
@@ -64,8 +54,6 @@ export async function register({ name, email, password, companyName, accountType
     });
   }
 
-  const rawToken = generateRawToken();
-
   const user = new User({
     name: name.trim(),
     email: normalizedEmail,
@@ -75,8 +63,6 @@ export async function register({ name, email, password, companyName, accountType
     role: resolveRole(accountType),
     scanCredits: INITIAL_SCAN_CREDITS,
     plan: PLAN_SLUGS.FREE,
-    verificationToken: hashToken(rawToken), // only the digest is stored
-    verificationTokenExpires: addDuration(new Date(), VERIFICATION_TTL),
   });
 
   await user.save();
@@ -92,7 +78,6 @@ export async function register({ name, email, password, companyName, accountType
     balanceAfter: INITIAL_SCAN_CREDITS,
   });
 
-  await sendVerificationEmail({ to: user.email, name: user.name, token: rawToken });
   recordAudit({ userId: user._id, action: AUDIT_ACTIONS.USER_REGISTERED, resourceType: 'User', resourceId: user._id, req });
 
   return { user, tokens: issueTokens(user) };
@@ -154,87 +139,6 @@ export async function refreshSession(refreshToken) {
   return { user, tokens: issueTokens(user) };
 }
 
-export async function verifyEmail(rawToken, req) {
-  const user = await User.findOne({
-    verificationToken: hashToken(rawToken),
-    verificationTokenExpires: { $gt: new Date() },
-  }).select('+verificationToken +verificationTokenExpires');
-
-  if (!user) {
-    throw ApiError.badRequest('This verification link is invalid or has expired.', {
-      code: ERROR_CODES.INVALID_TOKEN,
-    });
-  }
-
-  user.emailVerified = true;
-  user.verificationToken = null;
-  user.verificationTokenExpires = null;
-  await user.save();
-
-  await sendWelcomeEmail({ to: user.email, name: user.name });
-  recordAudit({ userId: user._id, action: AUDIT_ACTIONS.USER_EMAIL_VERIFIED, resourceType: 'User', resourceId: user._id, req });
-
-  return user;
-}
-
-export async function resendVerification(email) {
-  const user = await User.findOne({ email: email.toLowerCase().trim() }).select(
-    '+verificationToken +verificationTokenExpires',
-  );
-
-  // Silent no-op for unknown or already-verified addresses: the caller always
-  // gets the same response, so this cannot confirm whether an account exists.
-  if (!user || user.emailVerified) return;
-
-  const rawToken = generateRawToken();
-  user.verificationToken = hashToken(rawToken);
-  user.verificationTokenExpires = addDuration(new Date(), VERIFICATION_TTL);
-  await user.save();
-
-  await sendVerificationEmail({ to: user.email, name: user.name, token: rawToken });
-}
-
-export async function requestPasswordReset(email, req) {
-  const user = await User.findOne({ email: email.toLowerCase().trim() }).select(
-    '+resetPasswordToken +resetPasswordExpires',
-  );
-
-  // Same silent no-op as above; the controller returns success regardless.
-  if (!user || user.status !== USER_STATUS.ACTIVE) return;
-
-  const rawToken = generateRawToken();
-  user.resetPasswordToken = hashToken(rawToken);
-  user.resetPasswordExpires = addDuration(new Date(), RESET_TTL);
-  await user.save();
-
-  await sendPasswordResetEmail({ to: user.email, name: user.name, token: rawToken });
-  recordAudit({ userId: user._id, action: AUDIT_ACTIONS.USER_PASSWORD_RESET_REQUESTED, resourceType: 'User', resourceId: user._id, req });
-}
-
-export async function resetPassword({ token, password }, req) {
-  const user = await User.findOne({
-    resetPasswordToken: hashToken(token),
-    resetPasswordExpires: { $gt: new Date() },
-  }).select('+resetPasswordToken +resetPasswordExpires');
-
-  if (!user) {
-    throw ApiError.badRequest('This password reset link is invalid or has expired.', {
-      code: ERROR_CODES.INVALID_TOKEN,
-    });
-  }
-
-  user.password = password;
-  user.resetPasswordToken = null;
-  user.resetPasswordExpires = null;
-  user.tokenVersion += 1; // sign out every existing session
-  await user.save();
-
-  await sendPasswordChangedEmail({ to: user.email, name: user.name });
-  recordAudit({ userId: user._id, action: AUDIT_ACTIONS.USER_PASSWORD_RESET, resourceType: 'User', resourceId: user._id, req });
-
-  return user;
-}
-
 export async function changePassword({ userId, currentPassword, newPassword }, req) {
   const user = await User.findById(userId).select('+passwordHash');
   if (!user) throw ApiError.notFound('User not found.');
@@ -251,7 +155,6 @@ export async function changePassword({ userId, currentPassword, newPassword }, r
   user.tokenVersion += 1;
   await user.save();
 
-  await sendPasswordChangedEmail({ to: user.email, name: user.name });
   recordAudit({ userId: user._id, action: AUDIT_ACTIONS.USER_PASSWORD_CHANGED, resourceType: 'User', resourceId: user._id, req });
 
   // Caller must re-issue tokens: the old ones no longer validate.
@@ -338,10 +241,6 @@ export default {
   register,
   login,
   refreshSession,
-  verifyEmail,
-  resendVerification,
-  requestPasswordReset,
-  resetPassword,
   changePassword,
   updateProfile,
   completeOnboarding,

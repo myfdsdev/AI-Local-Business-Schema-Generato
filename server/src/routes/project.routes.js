@@ -1,7 +1,7 @@
 import { Router } from 'express';
 
 import * as projectController from '../controllers/projectController.js';
-import { authenticate, requireVerifiedEmail } from '../middleware/auth.js';
+import { authenticate } from '../middleware/auth.js';
 import { loadProject, requireProjectOwner } from '../middleware/ownership.js';
 import { validate } from '../middleware/validate.js';
 import {
@@ -20,7 +20,7 @@ router.get('/', validate({ query: listProjectsSchema }), projectController.list)
 
 // Creating a project is the first step that consumes resources, so it is gated
 // on a verified email address.
-router.post('/', requireVerifiedEmail, validate({ body: createProjectSchema }), projectController.create);
+router.post('/', validate({ body: createProjectSchema }), projectController.create);
 
 // `loadProject` resolves :projectId and enforces ownership for everything below.
 router.get('/:projectId', validate({ params: projectIdSchema }), loadProject, projectController.detail);

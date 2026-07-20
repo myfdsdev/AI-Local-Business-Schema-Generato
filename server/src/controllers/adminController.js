@@ -90,7 +90,7 @@ export const getUser = asyncHandler(async (req, res) => {
 });
 
 export const updateUser = asyncHandler(async (req, res) => {
-  const allowed = ['name', 'role', 'plan', 'companyName', 'emailVerified'];
+  const allowed = ['name', 'role', 'plan', 'companyName'];
   const patch = {};
   for (const key of allowed) {
     if (req.body[key] !== undefined) patch[key] = req.body[key];

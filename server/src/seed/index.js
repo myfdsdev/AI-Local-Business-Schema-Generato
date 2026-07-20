@@ -63,7 +63,6 @@ async function ensureUser({ email, password, name, role, accountType, plan, comp
     accountType,
     plan,
     companyName: companyName ?? '',
-    emailVerified: true, // seed accounts are pre-verified for convenience
     status: USER_STATUS.ACTIVE,
     scanCredits: role === ROLES.ADMIN ? 100000 : INITIAL_SCAN_CREDITS,
     onboarding: { completed: true, completedAt: new Date() },

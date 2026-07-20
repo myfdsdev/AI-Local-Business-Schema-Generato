@@ -9,9 +9,6 @@ import LandingPage from '@/pages/marketing/LandingPage';
 import PricingPage from '@/pages/marketing/PricingPage';
 import LoginPage from '@/pages/auth/LoginPage';
 import RegisterPage from '@/pages/auth/RegisterPage';
-import VerifyEmailPage from '@/pages/auth/VerifyEmailPage';
-import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
-import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 import OnboardingPage from '@/pages/onboarding/OnboardingPage';
 import DashboardPage from '@/pages/dashboard/DashboardPage';
 import ProjectsListPage from '@/pages/projects/ProjectsListPage';
@@ -38,9 +35,6 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
         </Route>
         {/* Reachable whether or not signed in */}
-        <Route path="/verify-email" element={<VerifyEmailPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
       </Route>
 
       {/* Onboarding sits outside the app shell */}

@@ -14,7 +14,6 @@ process.env.CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 process.env.JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'dev-access-secret-'.padEnd(48, 'x');
 process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-'.padEnd(48, 'y');
 process.env.COOKIE_SECRET = process.env.COOKIE_SECRET || 'dev-cookie-secret-'.padEnd(24, 'z');
-process.env.EMAIL_ENABLED = 'false';
 process.env.ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@localschema.test';
 process.env.ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Admin!Passw0rd';
 process.env.DEMO_USER_EMAIL = process.env.DEMO_USER_EMAIL || 'owner@localschema.test';

@@ -91,7 +91,7 @@ export default function ContentGeneratorPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div>
       <div className="mb-6 flex items-start gap-4">
         <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary sm:flex">
           <PenLine className="h-6 w-6" />
@@ -116,81 +116,96 @@ export default function ContentGeneratorPage() {
         </Alert>
       )}
 
-      <Card className="mb-6">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,480px)_minmax(0,1fr)] xl:items-start">
+        <Card className="xl:sticky xl:top-24">
         <CardContent className="p-6">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-            <div className="grid gap-4 sm:grid-cols-2">
+          {/* Single column: this card sits in a 480px sticky column, so a
+              two-up grid would squeeze each field. */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+            <div className="space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                About the business
+              </p>
               <Field id="businessName" label="Business name" error={errors.businessName?.message} required>
-                <Input placeholder="Sharma's Kitchen" {...register('businessName')} />
+                <Input placeholder="Bella Vista Trattoria" {...register('businessName')} />
               </Field>
               <Field id="category" label="Category" error={errors.category?.message} required>
-                <Input placeholder="North Indian restaurant" {...register('category')} />
+                <Input placeholder="Italian restaurant" {...register('category')} />
               </Field>
-              <Field id="location" label="Location" error={errors.location?.message}>
-                <Input placeholder="Jodhpur, Rajasthan" {...register('location')} />
-              </Field>
-              <Field id="pageType" label="Page type" error={errors.pageType?.message}>
-                <Select value={values.pageType} onValueChange={(v) => setValue('pageType', v)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PAGE_TYPE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <Field id="location" label="Location" error={errors.location?.message} hint="Optional">
+                <Input placeholder="London, UK" {...register('location')} />
               </Field>
             </div>
 
-            <Field
-              id="keywords"
-              label="Target keywords"
-              error={errors.keywords?.message}
-              hint="Comma-separated. Prefilled if you came from keyword research."
-              required
-            >
-              <Textarea rows={2} placeholder="north indian restaurant jodhpur, best thali jodhpur" {...register('keywords')} />
-            </Field>
+            <div className="h-px bg-border" />
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field id="tone" label="Tone" error={errors.tone?.message}>
-                <Select value={values.tone} onValueChange={(v) => setValue('tone', v)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TONE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                The page
+              </p>
+
+              {/* Two short selects pair comfortably even at this width. */}
+              <div className="grid grid-cols-2 gap-3">
+                <Field id="pageType" label="Page type" error={errors.pageType?.message}>
+                  <Select value={values.pageType} onValueChange={(v) => setValue('pageType', v)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PAGE_TYPE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field id="tone" label="Tone" error={errors.tone?.message}>
+                  <Select value={values.tone} onValueChange={(v) => setValue('tone', v)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TONE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
+
+              <Field
+                id="keywords"
+                label="Target keywords"
+                error={errors.keywords?.message}
+                hint="Comma-separated. Prefilled if you came from keyword research."
+                required
+              >
+                <Textarea rows={2} placeholder="italian restaurant london, best pizza london" {...register('keywords')} />
+              </Field>
+
+              <Field
+                id="details"
+                label="Real details to include"
+                error={errors.details?.message}
+                hint="Optional — nothing gets invented beyond what you put here."
+              >
+                <Textarea rows={3} placeholder="Family-run since 1998, wood-fired oven, outdoor terrace." {...register('details')} />
               </Field>
             </div>
 
-            <Field
-              id="details"
-              label="Real details to include (optional)"
-              error={errors.details?.message}
-              hint="Anything specific and true — nothing gets invented beyond this."
-            >
-              <Textarea rows={3} placeholder="Family-run since 1998, pure veg, free home delivery within 5km." {...register('details')} />
-            </Field>
-
-            <div className="flex justify-end">
-              <Button type="submit" size="lg" disabled={mutation.isPending} className="w-full sm:w-auto">
-                {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <PenLine className="h-4 w-4" />}
-                {mutation.isPending ? 'Writing…' : 'Generate content'}
-              </Button>
-            </div>
+            <Button type="submit" size="lg" disabled={mutation.isPending} className="w-full">
+              {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <PenLine className="h-4 w-4" />}
+              {mutation.isPending ? 'Writing…' : 'Generate content'}
+            </Button>
           </form>
         </CardContent>
       </Card>
 
+      {/* Results column */}
+      <div>
       {errorInfo && (
         <Alert variant="destructive" className="mb-6">
           <AlertTitle>Couldn&apos;t generate content</AlertTitle>
@@ -199,6 +214,30 @@ export default function ContentGeneratorPage() {
             <p className="mt-2 text-xs opacity-80">Error code: <code>{errorInfo.code}</code></p>
           </AlertDescription>
         </Alert>
+      )}
+
+      {!result && !errorInfo && !mutation.isPending && (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center gap-2 px-6 py-16 text-center">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <FileText className="h-5 w-5" />
+            </div>
+            <h3 className="text-sm font-semibold">Your page content will appear here</h3>
+            <p className="max-w-sm text-xs text-muted-foreground">
+              Fill in the business and target keywords on the left. You&apos;ll get meta tags, an
+              H1, and ready-to-edit sections.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {mutation.isPending && (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center gap-2 px-6 py-16 text-center">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Writing your page content…</p>
+          </CardContent>
+        </Card>
       )}
 
       {result && (
@@ -249,6 +288,8 @@ export default function ContentGeneratorPage() {
           </CardContent>
         </Card>
       )}
+      </div>
+      </div>
     </div>
   );
 }

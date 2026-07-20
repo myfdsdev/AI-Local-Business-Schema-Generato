@@ -58,7 +58,7 @@ export function AppLayout() {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+        <div className="mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4 sm:px-6">
           <NavLink to="/app/dashboard" aria-label="LocalSchema AI home">
             <Logo />
           </NavLink>
@@ -126,21 +126,9 @@ export function AppLayout() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-        {!user?.emailVerified && <VerifyEmailBanner email={user?.email} />}
+      <main className="mx-auto w-full max-w-screen-2xl px-4 py-6 sm:px-6 sm:py-8">
         <Outlet />
       </main>
-    </div>
-  );
-}
-
-function VerifyEmailBanner({ email }) {
-  return (
-    <div className="mb-6 flex flex-col gap-1 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning-foreground">
-      <span className="font-medium">Verify your email address</span>
-      <span className="text-warning-foreground/80">
-        We sent a verification link to {email}. Verify it to create projects and run scans.
-      </span>
     </div>
   );
 }

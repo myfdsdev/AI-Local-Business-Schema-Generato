@@ -36,7 +36,6 @@ describe('Authentication API', () => {
       assert.equal(response.body.success, true);
       assert.ok(response.body.data.accessToken, 'expected an access token');
       assert.equal(response.body.data.user.email, payload.email);
-      assert.equal(response.body.data.user.emailVerified, false);
       // Refresh token must live in an HTTP-only cookie, never in the body.
       assert.ok(extractRefreshCookie(response), 'expected a refresh cookie');
       assert.equal(response.body.data.refreshToken, undefined);
@@ -162,21 +161,6 @@ describe('Authentication API', () => {
       const response = await request(getApp()).post('/api/v1/auth/refresh');
       assert.equal(response.status, 401);
       assert.equal(response.body.code, 'SESSION_EXPIRED');
-    });
-  });
-
-  describe('Email verification', () => {
-    it('verifies with a valid token and rejects an invalid one', async () => {
-      const { payload } = await registerUser();
-
-      const user = await User.findOne({ email: payload.email }).select('+verificationToken');
-      assert.ok(user.verificationToken, 'a verification token digest should be stored');
-
-      const bad = await request(getApp())
-        .post('/api/v1/auth/verify-email')
-        .send({ token: 'invalid-token-value' });
-      assert.equal(bad.status, 400);
-      assert.equal(bad.body.code, 'INVALID_TOKEN');
     });
   });
 

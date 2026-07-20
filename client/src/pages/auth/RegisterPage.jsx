@@ -35,7 +35,7 @@ export default function RegisterPage() {
   const onSubmit = async (values) => {
     try {
       await registerUser(values);
-      toast.success('Account created. Check your email to verify your address.');
+      toast.success('Account created. Welcome to LocalSchema AI.');
       navigate('/onboarding', { replace: true });
     } catch (error) {
       applyApiErrorToForm(error, form);

@@ -21,20 +21,6 @@ export const registerSchema = z.object({
   password,
 });
 
-export const forgotPasswordSchema = z.object({
-  email: z.string().min(1, 'Enter your email.').email('Enter a valid email address.'),
-});
-
-export const resetPasswordSchema = z
-  .object({
-    password,
-    confirmPassword: z.string(),
-  })
-  .refine((value) => value.password === value.confirmPassword, {
-    path: ['confirmPassword'],
-    message: 'Passwords do not match.',
-  });
-
 export const ACCOUNT_TYPE_OPTIONS = [
   { value: 'local_business', label: 'Local business owner' },
   { value: 'freelancer', label: 'Freelancer' },

@@ -14,6 +14,18 @@ const GREETING = {
     "Hi! I can help with schema markup, local SEO, and using this app.\n\nTry asking:\n- Which schema type fits my business?\n- How do I fix a validation error?\n- What does the website scan do?",
 };
 
+// Remembers that the user has already discovered the assistant, so the initial
+// nudge badge doesn't reappear on every page load forever.
+const SEEN_KEY = 'localschema-assistant-seen';
+
+const hasSeenAssistant = () => {
+  try {
+    return localStorage.getItem(SEEN_KEY) === '1';
+  } catch {
+    return false; // private mode — just show the nudge
+  }
+};
+
 /**
  * Floating assistant. Conversation lives in component state only — it is not
  * persisted, so closing the widget starts fresh.
@@ -22,20 +34,45 @@ export function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([GREETING]);
   const [input, setInput] = useState('');
+  // Unread count drives the red badge. Starts at 1 for the unseen greeting.
+  const [unread, setUnread] = useState(() => (hasSeenAssistant() ? 0 : 1));
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
+  // Mirrors `open` so async reply handlers read the current value without
+  // being re-created on every toggle.
+  const openRef = useRef(open);
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
+
+  // A reply can land after the user has closed the panel, so flag it as unread.
+  const receive = (message) => {
+    setMessages((current) => [...current, message]);
+    if (!openRef.current) setUnread((count) => count + 1);
+  };
 
   const mutation = useMutation({
     mutationFn: (history) =>
       // The greeting is local-only; don't send it as real conversation history.
       assistantApi.chat(history.filter((message) => message !== GREETING)),
-    onSuccess: (data) => setMessages((current) => [...current, { role: 'assistant', content: data.reply }]),
-    onError: (error) =>
-      setMessages((current) => [
-        ...current,
-        { role: 'assistant', content: toApiError(error).message, isError: true },
-      ]),
+    onSuccess: (data) => receive({ role: 'assistant', content: data.reply }),
+    onError: (error) => receive({ role: 'assistant', content: toApiError(error).message, isError: true }),
   });
+
+  const toggle = () => {
+    setOpen((wasOpen) => {
+      const next = !wasOpen;
+      if (next) {
+        setUnread(0);
+        try {
+          localStorage.setItem(SEEN_KEY, '1');
+        } catch {
+          /* private mode — nothing to persist */
+        }
+      }
+      return next;
+    });
+  };
 
   // Keep the newest message in view as the conversation grows.
   useEffect(() => {
@@ -148,18 +185,32 @@ export function ChatWidget() {
 
       <button
         type="button"
-        onClick={() => setOpen((value) => !value)}
-        aria-label={open ? 'Close assistant' : 'Open assistant'}
+        onClick={toggle}
+        aria-label={
+          open
+            ? 'Close assistant'
+            : unread > 0
+              ? `Open assistant, ${unread} unread message${unread > 1 ? 's' : ''}`
+              : 'Open assistant'
+        }
         aria-expanded={open}
-        className={cn(
-          'fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-transform hover:scale-105',
-          open ? 'bg-primary text-primary-foreground' : 'bg-primary',
-        )}
+        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105"
       >
         {open ? (
           <X className="h-6 w-6" />
         ) : (
           <LottieAnimation src="/animations/chatbot.json" className="h-11 w-11" />
+        )}
+
+        {/* Unread badge — only while the panel is closed. */}
+        {!open && unread > 0 && (
+          <span className="absolute -right-0.5 -top-0.5 flex h-5 w-5" aria-hidden>
+            {/* Pulse ring to catch the eye, sitting behind the solid dot. */}
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
+            <span className="relative inline-flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold leading-none text-destructive-foreground ring-2 ring-background">
+              {unread > 9 ? '9+' : unread}
+            </span>
+          </span>
         )}
       </button>
     </>

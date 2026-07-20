@@ -4,11 +4,14 @@ import {
   LayoutDashboard,
   LogOut,
   MapPin,
+  Monitor,
+  Moon,
   PenLine,
   Search,
   Settings,
   Shield,
   Sparkles,
+  Sun,
   User as UserIcon,
 } from 'lucide-react';
 
@@ -25,6 +28,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn, initials } from '@/lib/utils';
 import { useAuth } from '@/store/AuthContext';
+import { useTheme } from '@/store/ThemeContext';
+
+const THEME_OPTIONS = [
+  { value: 'light', label: 'Light', icon: Sun },
+  { value: 'dark', label: 'Dark', icon: Moon },
+  { value: 'system', label: 'System', icon: Monitor },
+];
 
 // Primary navigation, now surfaced from the avatar menu instead of a sidebar.
 const NAV_ITEMS = [
@@ -44,6 +54,7 @@ const NAV_ITEMS = [
  */
 export function AppLayout() {
   const { user, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -110,6 +121,32 @@ export function AppLayout() {
                     Admin
                   </DropdownMenuItem>
                 )}
+
+                <DropdownMenuSeparator />
+
+                {/* Theme: light / dark / follow the OS */}
+                <div className="px-2 py-1.5">
+                  <p className="mb-1.5 text-xs font-medium text-muted-foreground">Theme</p>
+                  <div className="grid grid-cols-3 gap-1" role="group" aria-label="Theme">
+                    {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setTheme(value)}
+                        aria-pressed={theme === value}
+                        className={cn(
+                          'flex flex-col items-center gap-1 rounded-md border px-2 py-1.5 text-[11px] font-medium transition-colors',
+                          theme === value
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-transparent text-muted-foreground hover:bg-accent hover:text-foreground',
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => navigate('/app/profile')}>

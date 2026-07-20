@@ -8,6 +8,21 @@
       content="Help search engines understand your local business and improve local search visibility with accurate structured data."
     />
     <title>LocalSchema AI — Local Business Schema Generator</title>
+    <script>
+      // Apply the saved theme before first paint so dark users don't get a
+      // white flash while React boots. ThemeContext owns it from then on.
+      (function () {
+        try {
+          var saved = localStorage.getItem('localschema-theme') || 'system';
+          var dark =
+            saved === 'dark' ||
+            (saved === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {
+          /* localStorage unavailable (private mode) — fall back to light. */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

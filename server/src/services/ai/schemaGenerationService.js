@@ -53,17 +53,7 @@ export async function generateFromDocuments({ files = [], notes = '' }) {
 
   const validation = parseAndValidate(completion.content);
   const graph = validation.graph;
-
-  // Did the model actually find a business to describe? An empty or type-less
-  // graph means the source had no business details (e.g. a code README), which
-  // is the model correctly refusing to invent data — not an app failure. The
-  // UI uses this to show guidance instead of a wall of validation errors.
-  const hasBusinessData = Boolean(
-    graph &&
-      typeof graph === 'object' &&
-      graph['@type'] &&
-      (graph.name || graph.address || graph.telephone || graph.url),
-  );
+  const hasBusinessData = describesLocalBusiness(graph);
 
   return {
     jsonLd: graph,
@@ -88,6 +78,29 @@ export async function generateFromDocuments({ files = [], notes = '' }) {
  */
 export async function generateFromText(notes) {
   return generateFromDocuments({ files: [], notes });
+}
+
+/**
+ * Signals only a real-world business has. A name/url/description alone
+ * describes ANY web page — a code library README, an article, a docs site — so
+ * those are not sufficient. (Regression guard: an npm package README once
+ * produced a confident, "valid" ProfessionalService graph.)
+ */
+const REAL_WORLD_SIGNALS = ['address', 'telephone', 'openingHoursSpecification', 'geo'];
+
+/**
+ * Whether an extracted graph actually describes a local business, as opposed to
+ * the model having typed some non-business document as one. Exported so the
+ * rule is unit-testable without calling the AI.
+ */
+export function describesLocalBusiness(graph) {
+  if (!graph || typeof graph !== 'object') return false;
+  if (!graph['@type'] || !graph.name) return false;
+
+  return REAL_WORLD_SIGNALS.some((key) => {
+    const value = graph[key];
+    return Array.isArray(value) ? value.length > 0 : Boolean(value);
+  });
 }
 
 export { isAiConfigured, activeProvider };

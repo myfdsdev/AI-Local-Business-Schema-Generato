@@ -14,6 +14,7 @@ import { stopSharedServer } from './helpers/testServer.js';
 import './unit/url.test.js';
 import './unit/documentParser.test.js';
 import './unit/jsonLdValidator.test.js';
+import './unit/describesLocalBusiness.test.js';
 import './api/auth.test.js';
 import './api/projects.test.js';
 

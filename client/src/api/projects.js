@@ -10,6 +10,12 @@ export const projectsApi = {
   restore: (projectId) => api.post(`/projects/${projectId}/restore`).then((r) => r.data.data.project),
 };
 
+export const scansApi = {
+  start: (projectId) => api.post(`/projects/${projectId}/scan`).then((r) => r.data.data.scan),
+  get: (scanId) => api.get(`/scans/${scanId}`).then((r) => r.data.data.scan),
+  listForProject: (projectId) => api.get(`/projects/${projectId}/scans`).then((r) => r.data.data.scans),
+};
+
 export const dashboardApi = {
   overview: () => api.get('/dashboard').then((r) => r.data.data),
 };

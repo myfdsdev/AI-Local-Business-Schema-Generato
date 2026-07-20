@@ -5,6 +5,7 @@ import authRoutes from './auth.routes.js';
 import catalogRoutes from './catalog.routes.js';
 import dashboardRoutes from './dashboard.routes.js';
 import projectRoutes from './project.routes.js';
+import scanRoutes from './scan.routes.js';
 import schemaGenRoutes from './schemaGen.routes.js';
 import seoRoutes from './seo.routes.js';
 
@@ -22,6 +23,7 @@ router.use('/auth', authRoutes);
 router.use('/catalog', catalogRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/projects', projectRoutes);
+router.use('/scans', scanRoutes);
 router.use('/schema-generator', schemaGenRoutes);
 router.use('/seo', seoRoutes);
 router.use('/admin', adminRoutes);

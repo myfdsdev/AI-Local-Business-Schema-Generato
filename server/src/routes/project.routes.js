@@ -1,8 +1,10 @@
 import { Router } from 'express';
 
 import * as projectController from '../controllers/projectController.js';
+import * as scanController from '../controllers/scanController.js';
 import { authenticate } from '../middleware/auth.js';
 import { loadProject, requireProjectOwner } from '../middleware/ownership.js';
+import { scanLimiter } from '../middleware/rateLimit.js';
 import { validate } from '../middleware/validate.js';
 import {
   createProjectSchema,
@@ -51,6 +53,22 @@ router.post(
   loadProject,
   requireProjectOwner,
   projectController.restore,
+);
+
+// --- Website scanning -------------------------------------------------------
+router.post(
+  '/:projectId/scan',
+  scanLimiter,
+  validate({ params: projectIdSchema }),
+  loadProject,
+  requireProjectOwner,
+  scanController.start,
+);
+router.get(
+  '/:projectId/scans',
+  validate({ params: projectIdSchema }),
+  loadProject,
+  scanController.listForProject,
 );
 
 export default router;

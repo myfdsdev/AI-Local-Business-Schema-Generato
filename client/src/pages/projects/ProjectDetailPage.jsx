@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -10,10 +11,11 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { projectsApi } from '@/api/projects';
+import { projectsApi, scansApi } from '@/api/projects';
 import { toApiError } from '@/api/client';
 import { ErrorState } from '@/components/common/ErrorState';
 import { PageHeader } from '@/components/common/PageHeader';
+import { ScanPanel } from '@/components/scan/ScanPanel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,6 +32,46 @@ export default function ProjectDetailPage() {
     queryKey: ['project', projectId],
     queryFn: () => projectsApi.get(projectId),
   });
+
+  // Most recent scan drives the panel; polled while one is in flight.
+  const { data: scans } = useQuery({
+    queryKey: ['project', projectId, 'scans'],
+    queryFn: () => scansApi.listForProject(projectId),
+  });
+  const latestScan = scans?.[0] ?? null;
+  const scanInFlight = latestScan?.status === 'queued' || latestScan?.status === 'running';
+
+  const { data: liveScan } = useQuery({
+    queryKey: ['scan', latestScan?.id],
+    queryFn: () => scansApi.get(latestScan.id),
+    enabled: Boolean(latestScan?.id) && scanInFlight,
+    // Poll while running; stop as soon as it finishes.
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === 'queued' || status === 'running' ? 1500 : false;
+    },
+  });
+
+  const scan = liveScan ?? latestScan;
+  const isScanning = scan?.status === 'queued' || scan?.status === 'running';
+
+  const scanMutation = useMutation({
+    mutationFn: () => scansApi.start(projectId),
+    onSuccess: () => {
+      toast.success('Scan started.');
+      queryClient.invalidateQueries({ queryKey: ['project', projectId, 'scans'] });
+    },
+    onError: (error) => toast.error(toApiError(error).message),
+  });
+
+  // Refresh project counters and credits once a scan finishes.
+  const previousStatus = scan?.status;
+  useEffect(() => {
+    if (previousStatus === 'completed' || previousStatus === 'failed') {
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project', projectId, 'scans'] });
+    }
+  }, [previousStatus, projectId, queryClient]);
 
   const removeMutation = useMutation({
     mutationFn: () => projectsApi.remove(projectId),
@@ -83,9 +125,16 @@ export default function ProjectDetailPage() {
         description={project.businessName}
         actions={
           <div className="flex items-center gap-2">
-            <Button disabled title="Scanning arrives in the next phase">
-              <ScanSearch className="h-4 w-4" />
-              Scan website
+            <Button
+              onClick={() => scanMutation.mutate()}
+              disabled={isScanning || scanMutation.isPending}
+            >
+              {isScanning || scanMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ScanSearch className="h-4 w-4" />
+              )}
+              {isScanning ? 'Scanning…' : scan ? 'Re-scan website' : 'Scan website'}
             </Button>
             <Button
               variant="outline"
@@ -128,24 +177,28 @@ export default function ProjectDetailPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Next: scan your website</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-start gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-4">
-                <Globe className="mt-0.5 h-5 w-5 text-muted-foreground" />
-                <div className="text-sm text-muted-foreground">
-                  <p className="font-medium text-foreground">Website scanning is coming in the next phase.</p>
-                  <p className="mt-1">
-                    Your project and confirmed business details are saved. Scanning will crawl the
-                    approved domain, detect existing schema, and extract business information for you
-                    to confirm — no data is invented.
-                  </p>
+          {scan ? (
+            <ScanPanel scan={scan} />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Next: scan your website</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-start gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-4">
+                  <Globe className="mt-0.5 h-5 w-5 text-muted-foreground" />
+                  <div className="text-sm text-muted-foreground">
+                    <p className="font-medium text-foreground">Ready to scan {project.normalizedDomain}.</p>
+                    <p className="mt-1">
+                      We&apos;ll read your homepage and key pages, honour your robots.txt, detect any
+                      schema already published, and pull out the business details we can find — nothing
+                      is invented. Costs 1 scan credit.
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="space-y-6">

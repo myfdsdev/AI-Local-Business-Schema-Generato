@@ -9,6 +9,23 @@ export default {
       screens: { '2xl': '1400px' },
     },
     extend: {
+      fontFamily: {
+        sans: [
+          'Inter Variable',
+          'Inter',
+          'ui-sans-serif',
+          'system-ui',
+          '-apple-system',
+          'Segoe UI',
+          'sans-serif',
+        ],
+      },
+      // Tighter tracking on display sizes; loose default tracking is what makes
+      // large headings look unfinished.
+      letterSpacing: {
+        tighter: '-0.025em',
+        tight: '-0.018em',
+      },
       colors: {
         border: {
           DEFAULT: 'hsl(var(--border))',
@@ -26,6 +43,7 @@ export default {
         },
         // Fixed brand ramps from the design system, for when a specific step is
         // wanted rather than the semantic token above.
+        // Legacy ramps from the earlier blue spec; kept so nothing breaks.
         blue: {
           50: '#EFF6FF',
           100: '#DBEAFE',

@@ -16,49 +16,49 @@
    *   text #0F172A / #475569 / #94A3B8 · border #E2E8F0 / #CBD5E1
    */
   :root {
-    --background: 210 40% 98%; /* #F8FAFC */
-    --foreground: 222 47% 11%; /* #0F172A text-primary */
+    --background: 180 5% 96%; /* #F5F6F6 — light neutral, a touch above the swatch grey */
+    --foreground: 0 0% 13%; /* #222222 charcoal */
 
-    --card: 0 0% 100%; /* #FFFFFF surface */
-    --card-foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 13%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 0 0% 13%;
 
-    --primary: 221 83% 53%; /* #2563EB */
+    --primary: 178 89% 17%; /* #05524F deep teal */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96%; /* #F1F5F9 surface-muted */
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 0 0% 89%; /* #E4E4E4 */
+    --secondary-foreground: 0 0% 13%;
 
-    --muted: 210 40% 96%; /* #F1F5F9 */
-    --muted-foreground: 215 19% 35%; /* #475569 text-secondary */
-    --muted-strong: 215 20% 65%; /* #94A3B8 text-muted */
+    --muted: 0 0% 93%;
+    --muted-foreground: 0 0% 35%;
+    --muted-strong: 0 0% 55%;
 
-    /* Hover/active surface — the palette's primary-light. */
-    --accent: 214 95% 93%; /* #DBEAFE */
-    --accent-foreground: 224 76% 48%; /* #1D4ED8 primary-hover */
+    /* Hover/active surface — a soft tint of the brand teal. */
+    --accent: 177 32% 88%; /* #D6EAE9 */
+    --accent-foreground: 179 88% 13%; /* #043F3E */
 
-    /* Teal secondary: available/positive states and analytics highlights. */
-    --brand: 173 80% 40%; /* #14B8A6 */
+    /* Brighter teal for highlights that need to read against dark surfaces. */
+    --brand: 177 80% 27%; /* #0E7C77 */
     --brand-foreground: 0 0% 100%;
-    --brand-muted: 167 85% 89%; /* #CCFBF1 */
+    --brand-muted: 177 32% 88%;
 
-    --destructive: 0 84% 60%; /* #EF4444 */
+    --destructive: 0 72% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 160 84% 39%; /* #10B981 */
+    --success: 177 80% 27%; /* teal doubles as the positive state */
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%; /* #F59E0B */
+    --warning: 38 92% 45%;
     --warning-foreground: 30 40% 15%;
 
-    --border: 214 32% 91%; /* #E2E8F0 */
-    --border-strong: 213 27% 84%; /* #CBD5E1 */
-    --input: 213 27% 84%; /* #CBD5E1 — matches the spec's button border */
-    --ring: 221 83% 53%; /* focus ring = primary */
+    --border: 0 0% 89%; /* #E4E4E4 */
+    --border-strong: 0 0% 80%;
+    --input: 0 0% 80%;
+    --ring: 178 89% 17%;
 
-    --radius: 0.625rem; /* 10px, per the button spec */
+    --radius: 0.625rem; /* 10px */
   }
 
   /*
@@ -67,35 +67,40 @@
    * the elevated one (the values it specifies for the sidebar). Primary lifts
    * to blue-500 (#3B82F6) because #2563EB lacks contrast on a dark background.
    */
+  /*
+   * Dark theme uses the swatch's charcoal as the base. The deep teal (#05524F)
+   * is too dark to read as a primary on it, so primary lifts to #14A39C — the
+   * same hue, raised in lightness for contrast.
+   */
   .dark {
-    --background: 222 47% 11%; /* #0F172A */
-    --foreground: 213 27% 84%; /* #CBD5E1 */
-    --card: 217 33% 17%; /* #1E293B */
-    --card-foreground: 213 27% 84%;
-    --popover: 217 33% 17%;
-    --popover-foreground: 213 27% 84%;
-    --primary: 217 91% 60%; /* #3B82F6 blue-500 */
+    --background: 0 0% 13%; /* #222222 charcoal */
+    --foreground: 0 0% 89%; /* #E4E4E4 */
+    --card: 0 0% 17%; /* #2B2B2B */
+    --card-foreground: 0 0% 89%;
+    --popover: 0 0% 17%;
+    --popover-foreground: 0 0% 89%;
+    --primary: 177 78% 36%; /* #14A39C lifted teal */
     --primary-foreground: 0 0% 100%;
-    --secondary: 217 33% 22%;
-    --secondary-foreground: 213 27% 84%;
-    --muted: 217 33% 22%;
-    --muted-foreground: 215 20% 65%; /* #94A3B8 */
-    --muted-strong: 213 27% 84%;
-    --accent: 217 33% 26%;
-    --accent-foreground: 213 94% 78%; /* blue-300 */
-    --brand: 172 66% 50%; /* #2DD4BF teal-400, lifted for dark */
-    --brand-foreground: 222 47% 11%;
-    --brand-muted: 175 84% 32%;
-    --destructive: 0 84% 60%;
+    --secondary: 0 0% 22%;
+    --secondary-foreground: 0 0% 89%;
+    --muted: 0 0% 22%;
+    --muted-foreground: 0 0% 63%;
+    --muted-strong: 0 0% 80%;
+    --accent: 178 40% 20%;
+    --accent-foreground: 177 60% 70%;
+    --brand: 177 78% 36%;
+    --brand-foreground: 0 0% 100%;
+    --brand-muted: 178 40% 20%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
-    --success: 158 64% 52%; /* emerald-400 */
-    --success-foreground: 222 47% 11%;
+    --success: 177 78% 40%;
+    --success-foreground: 0 0% 100%;
     --warning: 38 92% 55%;
     --warning-foreground: 30 40% 15%;
-    --border: 217 33% 24%;
-    --border-strong: 217 33% 30%;
-    --input: 217 33% 26%;
-    --ring: 217 91% 60%;
+    --border: 0 0% 22%; /* #383838 */
+    --border-strong: 0 0% 30%;
+    --input: 0 0% 26%;
+    --ring: 177 78% 36%;
   }
 }
 

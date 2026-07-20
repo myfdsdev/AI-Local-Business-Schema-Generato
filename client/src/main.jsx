@@ -4,6 +4,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
+// Self-hosted variable Inter — no external font request, and one file covers
+// every weight the UI uses.
+import '@fontsource-variable/inter';
+
 import App from './App.jsx';
 import { AuthProvider } from './store/AuthContext.jsx';
 import { ThemeProvider } from './store/ThemeContext.jsx';

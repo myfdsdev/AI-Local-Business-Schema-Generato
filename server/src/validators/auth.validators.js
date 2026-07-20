@@ -42,16 +42,6 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Enter your password.').max(128),
 });
 
-export const changePasswordSchema = z
-  .object({
-    currentPassword: z.string().min(1, 'Enter your current password.'),
-    newPassword: passwordSchema,
-  })
-  .refine((value) => value.currentPassword !== value.newPassword, {
-    path: ['newPassword'],
-    message: 'Choose a password different from your current one.',
-  });
-
 export const updateProfileSchema = z.object({
   name: z.string().trim().min(2).max(120).optional(),
   companyName: z.string().trim().max(160).optional(),

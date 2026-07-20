@@ -140,28 +140,6 @@ export async function refreshSession(refreshToken) {
   return { user, tokens: issueTokens(user) };
 }
 
-export async function changePassword({ userId, currentPassword, newPassword }, req) {
-  const user = await User.findById(userId).select('+passwordHash');
-  if (!user) throw ApiError.notFound('User not found.');
-
-  const matches = await user.verifyPassword(currentPassword);
-  if (!matches) {
-    throw ApiError.badRequest('Your current password is incorrect.', {
-      code: ERROR_CODES.INVALID_CREDENTIALS,
-      errors: [{ field: 'currentPassword', message: 'Incorrect password.' }],
-    });
-  }
-
-  user.password = newPassword;
-  user.tokenVersion += 1;
-  await user.save();
-
-  recordAudit({ userId: user._id, action: AUDIT_ACTIONS.USER_PASSWORD_CHANGED, resourceType: 'User', resourceId: user._id, req });
-
-  // Caller must re-issue tokens: the old ones no longer validate.
-  return { user, tokens: issueTokens(user) };
-}
-
 export async function updateProfile({ userId, updates }, req) {
   const allowed = ['name', 'companyName', 'profileImage', 'accountType'];
   const patch = {};
@@ -242,7 +220,6 @@ export default {
   register,
   login,
   refreshSession,
-  changePassword,
   updateProfile,
   completeOnboarding,
   deleteAccount,

@@ -5,7 +5,6 @@ export const AUDIT_ACTIONS = Object.freeze({
   USER_REGISTERED: 'user.registered',
   USER_LOGGED_IN: 'user.logged_in',
   USER_LOGGED_OUT: 'user.logged_out',
-  USER_PASSWORD_CHANGED: 'user.password_changed',
   USER_PROFILE_UPDATED: 'user.profile_updated',
   USER_ACCOUNT_DELETED: 'user.account_deleted',
 

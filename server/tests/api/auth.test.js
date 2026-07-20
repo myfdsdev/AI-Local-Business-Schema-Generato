@@ -164,25 +164,6 @@ describe('Authentication API', () => {
     });
   });
 
-  describe('Password change invalidates other sessions', () => {
-    it('bumps tokenVersion so old refresh tokens stop working', async () => {
-      const { response: reg, payload } = await registerUser();
-      const oldCookie = extractRefreshCookie(reg);
-
-      const changed = await request(getApp())
-        .put('/api/v1/auth/change-password')
-        .set(authHeader(reg.body.data.accessToken))
-        .send({ currentPassword: payload.password, newPassword: 'Br4ndNewPass!' });
-      assert.equal(changed.status, 200);
-
-      // The pre-change refresh cookie must no longer be accepted.
-      const refreshOld = await request(getApp())
-        .post('/api/v1/auth/refresh')
-        .set('Cookie', oldCookie);
-      assert.equal(refreshOld.status, 401);
-    });
-  });
-
   describe('DELETE /auth/account', () => {
     it('requires the correct password and then blocks sign-in', async () => {
       const { response: reg, payload } = await registerUser();

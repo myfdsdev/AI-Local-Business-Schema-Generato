@@ -92,24 +92,6 @@ export const updateProfile = asyncHandler(async (req, res) => {
   });
 });
 
-export const changePassword = asyncHandler(async (req, res) => {
-  const result = await authService.changePassword(
-    {
-      userId: req.user._id,
-      currentPassword: req.body.currentPassword,
-      newPassword: req.body.newPassword,
-    },
-    req,
-  );
-
-  // Changing the password bumps tokenVersion, so this session needs fresh
-  // tokens or the user would be signed out of the tab they just used.
-  return sendSuccess(res, {
-    message: 'Password changed. Other sessions have been signed out.',
-    data: issueSession(res, result),
-  });
-});
-
 export const completeOnboarding = asyncHandler(async (req, res) => {
   const user = await authService.completeOnboarding({ userId: req.user._id, ...req.body });
 
@@ -133,7 +115,6 @@ export default {
   logout,
   me,
   updateProfile,
-  changePassword,
   completeOnboarding,
   deleteAccount,
 };

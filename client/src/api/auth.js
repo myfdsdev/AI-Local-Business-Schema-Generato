@@ -7,7 +7,6 @@ export const authApi = {
   refresh: () => api.post('/auth/refresh').then((r) => r.data.data),
   me: () => api.get('/auth/me').then((r) => r.data.data.user),
   updateProfile: (payload) => api.put('/auth/profile', payload).then((r) => r.data.data.user),
-  changePassword: (payload) => api.put('/auth/change-password', payload).then((r) => r.data.data),
   completeOnboarding: (payload) => api.post('/auth/onboarding', payload).then((r) => r.data.data.user),
   deleteAccount: (password) => api.delete('/auth/account', { data: { password } }).then((r) => r.data),
 };

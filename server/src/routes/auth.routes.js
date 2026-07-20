@@ -5,7 +5,6 @@ import { authenticate, optionalAuthenticate } from '../middleware/auth.js';
 import { authLimiter } from '../middleware/rateLimit.js';
 import { validate } from '../middleware/validate.js';
 import {
-  changePasswordSchema,
   deleteAccountSchema,
   loginSchema,
   onboardingSchema,
@@ -24,12 +23,6 @@ router.post('/logout', optionalAuthenticate, authController.logout);
 // --- Authenticated ----------------------------------------------------------
 router.get('/me', authenticate, authController.me);
 router.put('/profile', authenticate, validate({ body: updateProfileSchema }), authController.updateProfile);
-router.put(
-  '/change-password',
-  authenticate,
-  validate({ body: changePasswordSchema }),
-  authController.changePassword,
-);
 router.post(
   '/onboarding',
   authenticate,

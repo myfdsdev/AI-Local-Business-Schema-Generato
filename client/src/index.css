@@ -9,68 +9,93 @@
  * opacity modifiers.
  */
 @layer base {
+  /*
+   * Brand palette. Hex values from the design system, stored as HSL triplets
+   * because Tailwind composes them with opacity modifiers (bg-primary/10).
+   *   primary #2563EB · accent #14B8A6 · surface #FFFFFF · bg #F8FAFC
+   *   text #0F172A / #475569 / #94A3B8 · border #E2E8F0 / #CBD5E1
+   */
   :root {
-    --background: 210 40% 99%;
-    --foreground: 222 47% 11%;
+    --background: 210 40% 98%; /* #F8FAFC */
+    --foreground: 222 47% 11%; /* #0F172A text-primary */
 
-    --card: 0 0% 100%;
+    --card: 0 0% 100%; /* #FFFFFF surface */
     --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 245 75% 59%;
+    --primary: 221 83% 53%; /* #2563EB */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96%;
+    --secondary: 210 40% 96%; /* #F1F5F9 surface-muted */
     --secondary-foreground: 222 47% 11%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 210 40% 96%; /* #F1F5F9 */
+    --muted-foreground: 215 19% 35%; /* #475569 text-secondary */
+    --muted-strong: 215 20% 65%; /* #94A3B8 text-muted */
 
-    --accent: 245 60% 96%;
-    --accent-foreground: 245 75% 45%;
+    /* Hover/active surface — the palette's primary-light. */
+    --accent: 214 95% 93%; /* #DBEAFE */
+    --accent-foreground: 224 76% 48%; /* #1D4ED8 primary-hover */
 
-    --destructive: 0 72% 51%;
+    /* Teal secondary: available/positive states and analytics highlights. */
+    --brand: 173 80% 40%; /* #14B8A6 */
+    --brand-foreground: 0 0% 100%;
+    --brand-muted: 167 85% 89%; /* #CCFBF1 */
+
+    --destructive: 0 84% 60%; /* #EF4444 */
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 71% 40%;
+    --success: 160 84% 39%; /* #10B981 */
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
+    --warning: 38 92% 50%; /* #F59E0B */
     --warning-foreground: 30 40% 15%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 245 75% 59%;
+    --border: 214 32% 91%; /* #E2E8F0 */
+    --border-strong: 213 27% 84%; /* #CBD5E1 */
+    --input: 213 27% 84%; /* #CBD5E1 — matches the spec's button border */
+    --ring: 221 83% 53%; /* focus ring = primary */
 
-    --radius: 0.65rem;
+    --radius: 0.625rem; /* 10px, per the button spec */
   }
 
+  /*
+   * Dark theme derived from the same palette. The design system is light-only,
+   * so these use its slate family: #0F172A as the base surface and #1E293B as
+   * the elevated one (the values it specifies for the sidebar). Primary lifts
+   * to blue-500 (#3B82F6) because #2563EB lacks contrast on a dark background.
+   */
   .dark {
-    --background: 222 47% 8%;
-    --foreground: 210 40% 96%;
-    --card: 222 45% 11%;
-    --card-foreground: 210 40% 96%;
-    --popover: 222 45% 11%;
-    --popover-foreground: 210 40% 96%;
-    --primary: 245 75% 65%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 96%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 20%;
-    --accent-foreground: 210 40% 96%;
-    --destructive: 0 63% 50%;
+    --background: 222 47% 11%; /* #0F172A */
+    --foreground: 213 27% 84%; /* #CBD5E1 */
+    --card: 217 33% 17%; /* #1E293B */
+    --card-foreground: 213 27% 84%;
+    --popover: 217 33% 17%;
+    --popover-foreground: 213 27% 84%;
+    --primary: 217 91% 60%; /* #3B82F6 blue-500 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 33% 22%;
+    --secondary-foreground: 213 27% 84%;
+    --muted: 217 33% 22%;
+    --muted-foreground: 215 20% 65%; /* #94A3B8 */
+    --muted-strong: 213 27% 84%;
+    --accent: 217 33% 26%;
+    --accent-foreground: 213 94% 78%; /* blue-300 */
+    --brand: 172 66% 50%; /* #2DD4BF teal-400, lifted for dark */
+    --brand-foreground: 222 47% 11%;
+    --brand-muted: 175 84% 32%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --success: 142 60% 45%;
-    --success-foreground: 0 0% 100%;
+    --success: 158 64% 52%; /* emerald-400 */
+    --success-foreground: 222 47% 11%;
     --warning: 38 92% 55%;
     --warning-foreground: 30 40% 15%;
-    --border: 217 33% 20%;
-    --input: 217 33% 22%;
-    --ring: 245 75% 65%;
+    --border: 217 33% 24%;
+    --border-strong: 217 33% 30%;
+    --input: 217 33% 26%;
+    --ring: 217 91% 60%;
   }
 }
 

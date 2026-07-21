@@ -4,9 +4,7 @@ export const keywordFormSchema = z.object({
   businessName: z.string().trim().min(2, 'Enter the business name.').max(200),
   category: z.string().trim().min(2, 'Enter the business category.').max(120),
   location: z.string().trim().max(160).optional(),
-  website: z.string().trim().max(2048).optional(),
   services: z.string().trim().max(1000).optional(),
-  seedKeywords: z.string().trim().max(1000).optional(),
 });
 
 export const contentFormSchema = z.object({

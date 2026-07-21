@@ -13,14 +13,12 @@ import { KEYWORD_SYSTEM_PROMPT } from '../ai/keywordPrompt.js';
  * block marked below and keep the same return shape. The `source` field records
  * which was used.
  */
-function buildUserContent({ businessName, category, location, website, services, seedKeywords, language }) {
+function buildUserContent({ businessName, category, location, services, language }) {
   const lines = [
     `Business name: ${businessName}`,
     `Category: ${category}`,
     location && `Location: ${location}`,
-    website && `Website: ${website}`,
-    services && `Services offered: ${services}`,
-    seedKeywords && `Seed keywords to expand on: ${seedKeywords}`,
+    services && `Services, products, or terms to focus on: ${services}`,
     `Language: ${language || 'en'}`,
   ].filter(Boolean);
 

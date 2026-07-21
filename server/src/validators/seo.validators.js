@@ -6,9 +6,7 @@ export const keywordRequestSchema = z.object({
   businessName: z.string().trim().min(2, 'Enter the business name.').max(200),
   category: z.string().trim().min(2, 'Enter the business category.').max(120),
   location: z.string().trim().max(160).optional().default(''),
-  website: z.string().trim().max(2048).optional().default(''),
   services: z.string().trim().max(1000).optional().default(''),
-  seedKeywords: z.string().trim().max(1000).optional().default(''),
   language: z.string().trim().min(2).max(10).optional().default('en'),
 });
 

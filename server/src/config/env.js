@@ -45,6 +45,10 @@ const baseSchema = z.object({
 
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
+
+  // Shared secret the AppsFields hub sends on /platform/* calls. When unset,
+  // those endpoints are disabled (this app runs standalone).
+  PLATFORM_SECRET: z.string().optional(),
 });
 
 const parsed = baseSchema.safeParse(process.env);

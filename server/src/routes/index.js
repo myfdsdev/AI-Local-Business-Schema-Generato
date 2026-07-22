@@ -4,11 +4,13 @@ import adminRoutes from './admin.routes.js';
 import authRoutes from './auth.routes.js';
 import catalogRoutes from './catalog.routes.js';
 import dashboardRoutes from './dashboard.routes.js';
+import platformRoutes from './platform.routes.js';
 import projectRoutes from './project.routes.js';
 import assistantRoutes from './assistant.routes.js';
 import scanRoutes from './scan.routes.js';
 import schemaGenRoutes from './schemaGen.routes.js';
 import seoRoutes from './seo.routes.js';
+import workspaceRoutes from './workspace.routes.js';
 
 /**
  * API v1 (spec section 19). Phase 2+ routers — scans, business data, schemas,
@@ -23,6 +25,8 @@ router.get('/health', (_req, res) => {
 router.use('/auth', authRoutes);
 router.use('/catalog', catalogRoutes);
 router.use('/dashboard', dashboardRoutes);
+router.use('/workspace', workspaceRoutes);
+router.use('/platform', platformRoutes);
 router.use('/projects', projectRoutes);
 router.use('/assistant', assistantRoutes);
 router.use('/scans', scanRoutes);

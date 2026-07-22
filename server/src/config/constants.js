@@ -3,6 +3,43 @@
  * authorization checks cannot drift apart.
  */
 
+// This app's fixed id in the AppsFields platform. Stamped on every tenant record.
+export const APP_ID = 'localschema';
+
+// Roles WITHIN a workspace (distinct from the platform ROLES below).
+export const WORKSPACE_ROLES = Object.freeze({
+  OWNER: 'owner',
+  ADMIN: 'admin',
+  MEMBER: 'member',
+});
+
+export const WORKSPACE_ROLE_VALUES = Object.freeze(Object.values(WORKSPACE_ROLES));
+
+export const WORKSPACE_STATUS = Object.freeze({
+  ACTIVE: 'active',
+  SUSPENDED: 'suspended',
+  CANCELLED: 'cancelled',
+});
+
+export const WORKSPACE_STATUS_VALUES = Object.freeze(Object.values(WORKSPACE_STATUS));
+
+export const MEMBER_STATUS = Object.freeze({
+  ACTIVE: 'active',
+  INVITED: 'invited',
+  REVOKED: 'revoked',
+});
+
+export const MEMBER_STATUS_VALUES = Object.freeze(Object.values(MEMBER_STATUS));
+
+export const INVITATION_STATUS = Object.freeze({
+  PENDING: 'pending',
+  ACCEPTED: 'accepted',
+  EXPIRED: 'expired',
+  REVOKED: 'revoked',
+});
+
+export const INVITATION_STATUS_VALUES = Object.freeze(Object.values(INVITATION_STATUS));
+
 export const ROLES = Object.freeze({
   ADMIN: 'admin',
   AGENCY: 'agency',

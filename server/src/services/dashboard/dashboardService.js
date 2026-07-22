@@ -6,17 +6,15 @@ import {
   SchemaDocument,
   WebsiteScan,
 } from '../../models/index.js';
-import { ownershipFilter } from '../../middleware/ownership.js';
-
 /**
  * Dashboard statistics (spec section 17), computed from real collections.
+ * `scope` is the caller's workspace filter (from workspaceFilter(req)).
  *
  * The counts run as one aggregation with $facet rather than a dozen
  * countDocuments calls, so the dashboard costs a single round trip.
  */
-export async function getDashboardStats(user) {
-  const scope = ownershipFilter(user);
-  const projectScope = Object.keys(scope).length > 0 ? scope : {};
+export async function getDashboardStats(scope, user) {
+  const projectScope = scope;
 
   const projectIds = await BusinessProject.find(projectScope).distinct('_id');
 
@@ -88,8 +86,7 @@ export async function getDashboardStats(user) {
   };
 }
 
-export async function getRecentActivity(user, { limit = 5 } = {}) {
-  const scope = ownershipFilter(user);
+export async function getRecentActivity(scope, { limit = 5 } = {}) {
   const projectIds = await BusinessProject.find(scope).distinct('_id');
 
   const [recentProjects, recentScans] = await Promise.all([
@@ -111,8 +108,7 @@ export async function getRecentActivity(user, { limit = 5 } = {}) {
  * Distribution for the dashboard's validation status chart. Returns explicit
  * zeros rather than an empty array so the chart renders a real empty state.
  */
-export async function getValidationBreakdown(user) {
-  const scope = ownershipFilter(user);
+export async function getValidationBreakdown(scope) {
   const projectIds = await BusinessProject.find(scope).distinct('_id');
 
   const rows = await SchemaDocument.aggregate([

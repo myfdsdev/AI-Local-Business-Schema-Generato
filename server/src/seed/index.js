@@ -18,6 +18,7 @@ import {
   Subscription,
   User,
 } from '../models/index.js';
+import { ensurePersonalWorkspace } from '../services/workspace/workspaceService.js';
 import { normalizeDomain } from '../utils/url.js';
 import { demoLocations, demoProjects } from './data/demo.js';
 import { plans } from './data/plans.js';
@@ -96,16 +97,24 @@ async function ensureUser({ email, password, name, role, accountType, plan, comp
 async function seedDemoProjects(owner) {
   if (!owner) return;
 
+  // The demo owner needs a workspace so their seeded projects are tenant-scoped
+  // exactly like real ones.
+  const { workspaceId } = await ensurePersonalWorkspace({
+    userId: owner._id,
+    name: owner.companyName || owner.name,
+  });
+
   for (const demo of demoProjects) {
     const { key, ...projectData } = demo;
     const normalizedDomain = normalizeDomain(demo.websiteUrl);
 
-    const existing = await BusinessProject.findOne({ userId: owner._id, normalizedDomain });
+    const existing = await BusinessProject.findOne({ workspaceId, normalizedDomain });
     if (existing) continue;
 
     const project = await BusinessProject.create({
       ...projectData,
       normalizedDomain,
+      workspaceId,
       userId: owner._id,
     });
 

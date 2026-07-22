@@ -1,4 +1,4 @@
-import { ownershipFilter } from '../middleware/ownership.js';
+import { workspaceFilter } from '../middleware/ownership.js';
 import * as projectService from '../services/projects/projectService.js';
 import { sendCreated, sendSuccess } from '../utils/ApiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
@@ -7,14 +7,17 @@ export const list = asyncHandler(async (req, res) => {
   const { items, meta } = await projectService.listProjects({
     user: req.user,
     query: req.validatedQuery ?? {},
-    filter: ownershipFilter(req.user),
+    filter: workspaceFilter(req),
   });
 
   return sendSuccess(res, { message: 'OK', data: { projects: items }, meta });
 });
 
 export const create = asyncHandler(async (req, res) => {
-  const project = await projectService.createProject({ user: req.user, payload: req.body }, req);
+  const project = await projectService.createProject(
+    { user: req.user, workspaceId: req.workspaceId, payload: req.body },
+    req,
+  );
 
   return sendCreated(res, {
     message: 'Project created successfully',

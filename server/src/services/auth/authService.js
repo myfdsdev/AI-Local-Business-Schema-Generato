@@ -11,6 +11,7 @@ import { CreditTransaction, Plan, Subscription, User } from '../../models/index.
 import ApiError from '../../utils/ApiError.js';
 import { DURATIONS, addDuration } from '../../utils/tokens.js';
 import { AUDIT_ACTIONS, recordAudit } from '../audit/auditService.js';
+import { ensurePersonalWorkspace } from '../workspace/workspaceService.js';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from './tokenService.js';
 
 /**
@@ -67,6 +68,10 @@ export async function register({ name, email, password, companyName, accountType
   });
 
   await user.save();
+
+  // Every account owns a workspace from the first moment — a self-registered
+  // user is the owner of their own personal workspace.
+  await ensurePersonalWorkspace({ userId: user._id, name: companyName?.trim() || name.trim() });
 
   await createFreeSubscription(user._id);
 

@@ -26,15 +26,15 @@ function validateWebsiteUrl(websiteUrl) {
   }
 }
 
-/** Enforces the plan's project cap. -1 means unlimited. */
-async function assertProjectQuota(user) {
+/** Enforces the plan's project cap per WORKSPACE. -1 means unlimited. */
+async function assertProjectQuota(user, workspaceId) {
   if (user.role === ROLES.ADMIN) return;
 
   const plan = await Plan.findOne({ slug: user.plan, active: true }).lean();
   if (!plan || plan.projectLimit === -1) return;
 
   const activeCount = await BusinessProject.countDocuments({
-    userId: user._id,
+    workspaceId,
     status: { $ne: PROJECT_STATUS.ARCHIVED },
   });
 
@@ -46,15 +46,15 @@ async function assertProjectQuota(user) {
   }
 }
 
-export async function createProject({ user, payload }, req) {
+export async function createProject({ user, workspaceId, payload }, req) {
   const { url, normalizedDomain } = validateWebsiteUrl(payload.websiteUrl);
 
   // Duplicate check runs before the quota check on purpose: if the user is
   // re-submitting a site they already have, "you already have this project" is
   // more useful than "plan limit reached" — and on a limit-1 plan the quota
-  // check would otherwise mask the duplicate entirely.
+  // check would otherwise mask the duplicate entirely. Scoped to the WORKSPACE.
   const duplicate = await BusinessProject.findOne({
-    userId: user._id,
+    workspaceId,
     normalizedDomain,
     status: { $ne: PROJECT_STATUS.ARCHIVED },
   })
@@ -62,7 +62,7 @@ export async function createProject({ user, payload }, req) {
     .lean();
 
   if (duplicate) {
-    throw ApiError.conflict('You already have a project for this website.', {
+    throw ApiError.conflict('This workspace already has a project for this website.', {
       code: ERROR_CODES.DUPLICATE_PROJECT,
       errors: [
         { field: 'websiteUrl', message: `"${duplicate.projectName}" already uses this domain.` },
@@ -70,12 +70,13 @@ export async function createProject({ user, payload }, req) {
     });
   }
 
-  await assertProjectQuota(user);
+  await assertProjectQuota(user, workspaceId);
 
   const project = await BusinessProject.create({
     ...payload,
     websiteUrl: url,
     normalizedDomain,
+    workspaceId,
     userId: user._id,
     agencyId: user.role === ROLES.AGENCY ? user._id : null,
     status: PROJECT_STATUS.DRAFT,
@@ -179,7 +180,7 @@ export async function updateProject({ project, payload, user }, req) {
 
     if (normalizedDomain !== project.normalizedDomain) {
       const clash = await BusinessProject.findOne({
-        userId: project.userId,
+        workspaceId: project.workspaceId,
         normalizedDomain,
         _id: { $ne: project._id },
         status: { $ne: PROJECT_STATUS.ARCHIVED },
@@ -188,7 +189,7 @@ export async function updateProject({ project, payload, user }, req) {
         .lean();
 
       if (clash) {
-        throw ApiError.conflict('You already have a project for this website.', {
+        throw ApiError.conflict('This workspace already has a project for this website.', {
           code: ERROR_CODES.DUPLICATE_PROJECT,
           errors: [{ field: 'websiteUrl', message: 'Another project already uses this domain.' }],
         });
@@ -236,9 +237,9 @@ export async function restoreProject({ project, user }, req) {
     throw ApiError.badRequest('This project is not archived.');
   }
 
-  // Restoring must not resurrect a domain the user has since re-added.
+  // Restoring must not resurrect a domain the workspace has since re-added.
   const clash = await BusinessProject.findOne({
-    userId: project.userId,
+    workspaceId: project.workspaceId,
     normalizedDomain: project.normalizedDomain,
     _id: { $ne: project._id },
     status: { $ne: PROJECT_STATUS.ARCHIVED },

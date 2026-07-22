@@ -2,7 +2,7 @@ import { Router } from 'express';
 
 import * as projectController from '../controllers/projectController.js';
 import * as scanController from '../controllers/scanController.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, resolveWorkspace } from '../middleware/auth.js';
 import { loadProject, requireProjectOwner } from '../middleware/ownership.js';
 import { scanLimiter } from '../middleware/rateLimit.js';
 import { validate } from '../middleware/validate.js';
@@ -15,8 +15,9 @@ import {
 
 const router = Router();
 
-// Every project route requires a signed-in user.
+// Every project route requires a signed-in user with an active workspace.
 router.use(authenticate);
+router.use(resolveWorkspace);
 
 router.get('/', validate({ query: listProjectsSchema }), projectController.list);
 

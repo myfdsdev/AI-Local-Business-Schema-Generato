@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
 import {
+  APP_ID,
   CMS_OPTIONS,
   LOCATION_MODES,
   LOCATION_MODE_VALUES,
@@ -10,6 +11,10 @@ import {
 
 const businessProjectSchema = new mongoose.Schema(
   {
+    appId: { type: String, default: APP_ID, index: true },
+    // The buyer/tenant this project belongs to — the isolation boundary.
+    workspaceId: { type: String, required: true, index: true },
+    // The individual member who created it (members see only their own).
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     // Set when the project belongs to an agency workspace rather than a single user.
     agencyId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, index: true },
@@ -43,12 +48,13 @@ const businessProjectSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-// Dashboard lists are always "this user's projects, newest first".
-businessProjectSchema.index({ userId: 1, createdAt: -1 });
-businessProjectSchema.index({ userId: 1, status: 1 });
-// Duplicate guard: one project per domain per user, ignoring archived ones.
+// Dashboard lists are always "this workspace's projects, newest first".
+businessProjectSchema.index({ workspaceId: 1, createdAt: -1 });
+businessProjectSchema.index({ workspaceId: 1, status: 1 });
+businessProjectSchema.index({ workspaceId: 1, userId: 1, createdAt: -1 });
+// Duplicate guard: one project per domain per WORKSPACE, ignoring archived ones.
 businessProjectSchema.index(
-  { userId: 1, normalizedDomain: 1 },
+  { workspaceId: 1, normalizedDomain: 1 },
   { unique: true, partialFilterExpression: { status: { $ne: PROJECT_STATUS.ARCHIVED } } },
 );
 

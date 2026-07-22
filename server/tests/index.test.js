@@ -18,6 +18,7 @@ import './unit/describesLocalBusiness.test.js';
 import './unit/scanSafety.test.js';
 import './api/auth.test.js';
 import './api/projects.test.js';
+import './api/workspace.test.js';
 
 // Stop the shared in-memory mongod once every suite has finished.
 after(stopSharedServer);

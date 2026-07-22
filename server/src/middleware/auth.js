@@ -1,8 +1,9 @@
-import { ERROR_CODES, ROLES, USER_STATUS } from '../config/constants.js';
-import { User } from '../models/index.js';
+import { ERROR_CODES, ROLES, USER_STATUS, WORKSPACE_STATUS } from '../config/constants.js';
+import { User, Workspace } from '../models/index.js';
 import ApiError from '../utils/ApiError.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { verifyAccessToken } from '../services/auth/tokenService.js';
+import { ensurePersonalWorkspace, findActiveMembership } from '../services/workspace/workspaceService.js';
 
 function readBearerToken(req) {
   const header = req.get('authorization');
@@ -45,6 +46,33 @@ export const authenticate = asyncHandler(async (req, _res, next) => {
   return next();
 });
 
+/**
+ * Resolves the caller's workspace from their MEMBERSHIP — never from the URL or
+ * body. Attaches req.workspaceId and req.wsRole for downstream scoping. Runs
+ * after authenticate. Blocks access to a suspended workspace. Lazily creates a
+ * personal workspace for any user that has none, so the app never 500s on a
+ * pre-multi-tenancy account.
+ */
+export const resolveWorkspace = asyncHandler(async (req, _res, next) => {
+  if (!req.user) throw ApiError.unauthorized('You must be signed in to do that.');
+
+  let membership = await findActiveMembership(req.user._id);
+  if (!membership) {
+    membership = await ensurePersonalWorkspace({ userId: req.user._id, name: req.user.name });
+  }
+
+  const workspace = await Workspace.findOne({ workspaceId: membership.workspaceId }).lean();
+  if (!workspace || workspace.status !== WORKSPACE_STATUS.ACTIVE) {
+    throw ApiError.forbidden('This workspace is not active. Contact support.', {
+      code: 'WORKSPACE_INACTIVE',
+    });
+  }
+
+  req.workspaceId = membership.workspaceId;
+  req.wsRole = membership.role;
+  return next();
+});
+
 /** Populates req.user when a token is present, but never rejects. */
 export const optionalAuthenticate = asyncHandler(async (req, _res, next) => {
   const token = readBearerToken(req);
@@ -80,4 +108,22 @@ export function requireRole(...roles) {
 
 export const requireAdmin = requireRole(ROLES.ADMIN);
 
-export default { authenticate, optionalAuthenticate, requireRole, requireAdmin };
+/** Gate for workspace-admin actions (managing team, settings). Owner + admin. */
+export function requireWorkspaceRole(...roles) {
+  const allowed = new Set(roles.flat());
+  return (req, _res, next) => {
+    if (!req.wsRole || !allowed.has(req.wsRole)) {
+      return next(ApiError.forbidden('You do not have permission in this workspace.'));
+    }
+    return next();
+  };
+}
+
+export default {
+  authenticate,
+  optionalAuthenticate,
+  resolveWorkspace,
+  requireRole,
+  requireAdmin,
+  requireWorkspaceRole,
+};

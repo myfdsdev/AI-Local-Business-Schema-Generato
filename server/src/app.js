@@ -33,7 +33,12 @@ export function createApp() {
 
   // Allowlist, not a wildcard: credentials:true and `origin: *` are mutually
   // exclusive, and the refresh cookie depends on credentialed requests.
-  const allowedOrigins = new Set([env.CLIENT_URL]);
+  // CLIENT_URL plus any extra origins listed in CORS_ORIGINS (comma-separated).
+  const allowedOrigins = new Set(
+    [env.CLIENT_URL, ...(env.CORS_ORIGINS?.split(',') ?? [])]
+      .map((origin) => origin.trim().replace(/\/$/, ''))
+      .filter(Boolean),
+  );
   app.use(
     cors({
       origin(origin, callback) {

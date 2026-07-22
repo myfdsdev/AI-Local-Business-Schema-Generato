@@ -17,6 +17,9 @@ const baseSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(5000),
   CLIENT_URL: z.string().url().default('http://localhost:5173'),
+  // Extra allowed browser origins beyond CLIENT_URL (comma-separated). Useful
+  // when the dev server picks a different port, e.g. 5174/5175.
+  CORS_ORIGINS: z.string().optional(),
 
   MONGODB_URI: z.string().min(1, 'MONGODB_URI is required'),
 

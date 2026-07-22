@@ -19,6 +19,7 @@ import GenerateFromDocumentsPage from '@/pages/tools/GenerateFromDocumentsPage';
 import KeywordResearchPage from '@/pages/tools/KeywordResearchPage';
 import ContentGeneratorPage from '@/pages/tools/ContentGeneratorPage';
 import ProfilePage from '@/pages/settings/ProfilePage';
+import TeamPage from '@/pages/settings/TeamPage';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 
@@ -56,6 +57,7 @@ export default function App() {
           <Route path="generate" element={<GenerateFromDocumentsPage />} />
           <Route path="keywords" element={<KeywordResearchPage />} />
           <Route path="content" element={<ContentGeneratorPage />} />
+          <Route path="team" element={<TeamPage />} />
           <Route
             path="locations"
             element={

@@ -13,6 +13,7 @@ import {
   Sparkles,
   Sun,
   User as UserIcon,
+  Users,
 } from 'lucide-react';
 
 import { ChatWidget } from '@/components/assistant/ChatWidget';

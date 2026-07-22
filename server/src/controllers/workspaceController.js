@@ -6,6 +6,14 @@ import asyncHandler from '../utils/asyncHandler.js';
 
 const clientUrl = () => env.CLIENT_URL?.replace(/\/$/, '') ?? '';
 
+/** The caller's own workspace context — used by the UI to show the right nav. */
+export const context = asyncHandler(async (req, res) =>
+  sendSuccess(res, {
+    message: 'OK',
+    data: { workspaceId: req.workspaceId, role: req.wsRole },
+  }),
+);
+
 /** Team list — owner/admin only (enforced by the route). */
 export const members = asyncHandler(async (req, res) => {
   const list = await membership.listMembers(req.workspaceId);
@@ -75,4 +83,4 @@ export const acceptJoin = asyncHandler(async (req, res) => {
   });
 });
 
-export default { members, invite, removeMember, joinInfo, acceptJoin };
+export default { context, members, invite, removeMember, joinInfo, acceptJoin };

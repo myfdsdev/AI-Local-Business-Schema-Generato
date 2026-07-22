@@ -9,6 +9,7 @@ import LandingPage from '@/pages/marketing/LandingPage';
 import PricingPage from '@/pages/marketing/PricingPage';
 import LoginPage from '@/pages/auth/LoginPage';
 import RegisterPage from '@/pages/auth/RegisterPage';
+import JoinPage from '@/pages/auth/JoinPage';
 import OnboardingPage from '@/pages/onboarding/OnboardingPage';
 import DashboardPage from '@/pages/dashboard/DashboardPage';
 import ProjectsListPage from '@/pages/projects/ProjectsListPage';
@@ -27,6 +28,9 @@ export default function App() {
       {/* Public marketing */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/pricing" element={<PricingPage />} />
+
+      {/* Workspace invite link — public, works signed out */}
+      <Route path="/join/:token" element={<JoinPage />} />
 
       {/* Auth — redirect signed-in users away from login/register */}
       <Route element={<AuthLayout />}>

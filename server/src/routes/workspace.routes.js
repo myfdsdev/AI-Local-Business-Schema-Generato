@@ -10,6 +10,9 @@ const router = Router();
 router.get('/join/:token', workspaceController.joinInfo);
 router.post('/join/:token', workspaceController.acceptJoin);
 
+// Any signed-in member can read their own workspace context.
+router.get('/', authenticate, resolveWorkspace, workspaceController.context);
+
 // --- Team management (owner/admin of the caller's workspace) -----------------
 const adminOnly = [
   authenticate,

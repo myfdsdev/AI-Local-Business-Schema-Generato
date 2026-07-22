@@ -45,6 +45,7 @@ const NAV_ITEMS = [
   { to: '/app/generate', label: 'Generate schema', icon: Sparkles },
   { to: '/app/keywords', label: 'Keyword research', icon: Search },
   { to: '/app/content', label: 'Content writer', icon: PenLine },
+  { to: '/app/team', label: 'Team', icon: Users },
   { to: '/app/locations', label: 'Locations', icon: MapPin },
   { to: '/app/settings', label: 'Settings', icon: Settings },
 ];

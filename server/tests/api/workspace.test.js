@@ -94,6 +94,34 @@ describe('Workspace isolation', () => {
     assert.equal(members.body.data.members.length, 2, 'owner + teammate');
   });
 
+  it('workspace stats return totals and an 8-week series (owner only)', async () => {
+    const owner = await makeOwnerWithProject();
+
+    const stats = await request(getApp())
+      .get('/api/v1/workspace/stats')
+      .set(authHeader(owner.token));
+    assert.equal(stats.status, 200);
+    assert.equal(stats.body.data.totals.members, 1);
+    assert.equal(stats.body.data.totals.projects, 1);
+    assert.equal(stats.body.data.series.length, 8);
+    // The current week bucket reflects the project just created.
+    assert.equal(stats.body.data.series.at(-1).projects, 1);
+
+    // A member cannot read workspace stats.
+    const invite = await request(getApp())
+      .post('/api/v1/workspace/invite')
+      .set(authHeader(owner.token))
+      .send({ role: 'member' });
+    const token = invite.body.data.joinUrl.split('/join/')[1];
+    const joined = await request(getApp())
+      .post(`/api/v1/workspace/join/${token}`)
+      .send({ name: 'M', password: 'Sup3rSecret!' });
+    const denied = await request(getApp())
+      .get('/api/v1/workspace/stats')
+      .set(authHeader(joined.body.data.accessToken));
+    assert.equal(denied.status, 403);
+  });
+
   it('a member cannot access team management', async () => {
     const owner = await makeOwnerWithProject();
     const invite = await request(getApp())

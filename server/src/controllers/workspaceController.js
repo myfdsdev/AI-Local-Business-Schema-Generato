@@ -1,5 +1,6 @@
 import { env } from '../config/env.js';
 import * as membership from '../services/workspace/membershipService.js';
+import { getWorkspaceStats } from '../services/workspace/statsService.js';
 import { signAccessToken, signRefreshToken, setRefreshCookie } from '../services/auth/tokenService.js';
 import { sendCreated, sendSuccess } from '../utils/ApiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
@@ -13,6 +14,12 @@ export const context = asyncHandler(async (req, res) =>
     data: { workspaceId: req.workspaceId, role: req.wsRole },
   }),
 );
+
+/** Workspace dashboard stats — owner/admin only (enforced by the route). */
+export const stats = asyncHandler(async (req, res) => {
+  const data = await getWorkspaceStats(req.workspaceId);
+  return sendSuccess(res, { message: 'OK', data });
+});
 
 /** Team list — owner/admin only (enforced by the route). */
 export const members = asyncHandler(async (req, res) => {
@@ -102,4 +109,4 @@ function issueSessionFor(res, user) {
   });
 }
 
-export default { context, members, invite, removeMember, joinInfo, acceptJoin, activate };
+export default { context, stats, members, invite, removeMember, joinInfo, acceptJoin, activate };

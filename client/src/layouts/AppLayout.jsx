@@ -16,6 +16,9 @@ import {
   Users,
 } from 'lucide-react';
 
+import { useQuery } from '@tanstack/react-query';
+
+import { workspaceApi } from '@/api/workspace';
 import { ChatWidget } from '@/components/assistant/ChatWidget';
 import { Logo } from '@/components/common/Logo';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -38,16 +41,18 @@ const THEME_OPTIONS = [
   { value: 'system', label: 'System', icon: Monitor },
 ];
 
-// Primary navigation, now surfaced from the avatar menu instead of a sidebar.
+// Primary navigation, surfaced from the avatar menu. Items flagged `adminOnly`
+// are hidden from plain members (owner/admin only) — the backend enforces the
+// same on the routes.
 const NAV_ITEMS = [
   { to: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/app/projects', label: 'Projects', icon: FolderKanban },
   { to: '/app/generate', label: 'Generate schema', icon: Sparkles },
   { to: '/app/keywords', label: 'Keyword research', icon: Search },
   { to: '/app/content', label: 'Content writer', icon: PenLine },
-  { to: '/app/team', label: 'Team', icon: Users },
-  { to: '/app/locations', label: 'Locations', icon: MapPin },
-  { to: '/app/settings', label: 'Settings', icon: Settings },
+  { to: '/app/team', label: 'Team', icon: Users, adminOnly: true },
+  { to: '/app/locations', label: 'Locations', icon: MapPin, adminOnly: true },
+  { to: '/app/settings', label: 'Settings', icon: Settings, adminOnly: true },
 ];
 
 /**
@@ -60,6 +65,20 @@ export function AppLayout() {
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // The caller's role in their workspace decides which nav items show.
+  const { data: workspace } = useQuery({
+    queryKey: ['workspace', 'context'],
+    queryFn: workspaceApi.context,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+  const isWorkspaceAdmin = workspace?.role === 'owner' || workspace?.role === 'admin';
+  // Until the role loads, default to the admin view (owner is the common case);
+  // hidden items reappear instantly and members simply lose a couple of entries.
+  const visibleNavItems = NAV_ITEMS.filter(
+    (item) => !item.adminOnly || workspace === undefined || isWorkspaceAdmin,
+  );
 
   const handleLogout = async () => {
     await logout();
@@ -104,7 +123,7 @@ export function AppLayout() {
                 <DropdownMenuSeparator />
 
                 {/* Primary navigation */}
-                {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+                {visibleNavItems.map(({ to, label, icon: Icon }) => (
                   <DropdownMenuItem
                     key={to}
                     onClick={() => navigate(to)}

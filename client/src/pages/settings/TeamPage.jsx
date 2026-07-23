@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { workspaceApi } from '@/api/workspace';
 import { toApiError } from '@/api/client';
 import { PageHeader } from '@/components/common/PageHeader';
+import { WorkspaceStats } from '@/components/workspace/WorkspaceStats';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -88,6 +89,8 @@ export default function TeamPage() {
         </Alert>
       ) : (
         <div className="space-y-6">
+          <WorkspaceStats />
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">

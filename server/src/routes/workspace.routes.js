@@ -25,6 +25,7 @@ const adminOnly = [
   requireWorkspaceRole(WORKSPACE_ROLES.OWNER, WORKSPACE_ROLES.ADMIN),
 ];
 
+router.get('/stats', ...adminOnly, workspaceController.stats);
 router.get('/members', ...adminOnly, workspaceController.members);
 router.post('/invite', ...adminOnly, workspaceController.invite);
 router.delete('/members/:userId', ...adminOnly, workspaceController.removeMember);

@@ -125,6 +125,36 @@ describe('Workspace isolation', () => {
     assert.equal(res.status, 401);
   });
 
+  it('hub provisions with a code → owner activates with email + code', async () => {
+    process.env.PLATFORM_SECRET = 'test-hub-secret';
+
+    const prov = await request(getApp())
+      .post('/api/v1/platform/provision')
+      .set('x-platform-secret', 'test-hub-secret')
+      .send({ workspaceId: 'ws_code1', ownerName: 'Coded', ownerEmail: 'coded@example.com', activationCode: '1234567' });
+    assert.equal(prov.status, 201);
+    assert.equal(prov.body.data.method, 'code');
+
+    // Wrong code with the right email is rejected.
+    const bad = await request(getApp())
+      .post('/api/v1/workspace/activate')
+      .send({ email: 'coded@example.com', code: '0000000', name: 'Coded', password: 'Sup3rSecret!' });
+    assert.equal(bad.status, 400);
+
+    // Correct email + code activates and logs the owner in.
+    const ok = await request(getApp())
+      .post('/api/v1/workspace/activate')
+      .send({ email: 'coded@example.com', code: '1234567', name: 'Coded', password: 'Sup3rSecret!' });
+    assert.equal(ok.status, 200);
+    assert.ok(ok.body.data.accessToken);
+
+    // They land as owner of their workspace.
+    const list = await request(getApp())
+      .get('/api/v1/projects')
+      .set(authHeader(ok.body.data.accessToken));
+    assert.equal(list.status, 200);
+  });
+
   it('hub provisions a buyer → owner joins → suspend blocks access', async () => {
     process.env.PLATFORM_SECRET = 'test-hub-secret';
 

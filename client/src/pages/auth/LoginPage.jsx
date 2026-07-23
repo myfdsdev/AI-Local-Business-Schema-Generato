@@ -79,6 +79,13 @@ export default function LoginPage() {
           Create one
         </Link>
       </p>
+
+      <p className="mt-2 text-center text-sm text-muted-foreground">
+        Bought this app?{' '}
+        <Link to="/activate" className="font-medium text-primary hover:underline">
+          Activate with your code
+        </Link>
+      </p>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import PricingPage from '@/pages/marketing/PricingPage';
 import LoginPage from '@/pages/auth/LoginPage';
 import RegisterPage from '@/pages/auth/RegisterPage';
 import JoinPage from '@/pages/auth/JoinPage';
+import ActivatePage from '@/pages/auth/ActivatePage';
 import OnboardingPage from '@/pages/onboarding/OnboardingPage';
 import DashboardPage from '@/pages/dashboard/DashboardPage';
 import ProjectsListPage from '@/pages/projects/ProjectsListPage';
@@ -30,8 +31,9 @@ export default function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/pricing" element={<PricingPage />} />
 
-      {/* Workspace invite link — public, works signed out */}
+      {/* Workspace invite link + owner activation — public, work signed out */}
       <Route path="/join/:token" element={<JoinPage />} />
+      <Route path="/activate" element={<ActivatePage />} />
 
       {/* Auth — redirect signed-in users away from login/register */}
       <Route element={<AuthLayout />}>

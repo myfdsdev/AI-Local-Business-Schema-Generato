@@ -1,7 +1,7 @@
 import { APP_ID, WORKSPACE_ROLES, WORKSPACE_STATUS } from '../config/constants.js';
 import { env } from '../config/env.js';
 import { Workspace } from '../models/index.js';
-import { createInvite } from '../services/workspace/membershipService.js';
+import { createInvite, createOwnerActivation } from '../services/workspace/membershipService.js';
 import { generateWorkspaceId } from '../services/workspace/workspaceService.js';
 import ApiError from '../utils/ApiError.js';
 import { safeEqual } from '../utils/tokens.js';
@@ -32,8 +32,12 @@ export function requireHubSecret(req, _res, next) {
  * user is created when they accept (they choose their own password then).
  */
 export const provision = asyncHandler(async (req, res) => {
-  const { ownerName, ownerEmail } = req.body;
+  const { ownerName, ownerEmail, activationCode } = req.body;
   const workspaceId = req.body.workspaceId || generateWorkspaceId();
+
+  if (!ownerEmail) {
+    throw ApiError.badRequest('ownerEmail is required.', { code: 'VALIDATION_ERROR' });
+  }
 
   const existing = await Workspace.findOne({ workspaceId });
   if (existing) {
@@ -45,8 +49,18 @@ export const provision = asyncHandler(async (req, res) => {
       appId: APP_ID,
       workspaceId,
       name: ownerName ?? '',
-      ownerEmail: ownerEmail?.toLowerCase().trim() ?? '',
+      ownerEmail: ownerEmail.toLowerCase().trim(),
       status: WORKSPACE_STATUS.ACTIVE,
+    });
+  }
+
+  // If the hub sent a 6–7 digit activation code, the owner redeems it with
+  // their email at /activate. Otherwise fall back to a one-time join link.
+  if (activationCode) {
+    await createOwnerActivation({ workspaceId, ownerEmail, code: String(activationCode) });
+    return sendCreated(res, {
+      message: 'Workspace provisioned.',
+      data: { workspaceId, method: 'code', activateUrl: `${clientUrl()}/activate` },
     });
   }
 
@@ -59,7 +73,7 @@ export const provision = asyncHandler(async (req, res) => {
 
   return sendCreated(res, {
     message: 'Workspace provisioned.',
-    data: { workspaceId, joinUrl: `${clientUrl()}/join/${token}` },
+    data: { workspaceId, method: 'link', joinUrl: `${clientUrl()}/join/${token}` },
   });
 });
 

@@ -52,18 +52,29 @@ export async function getUsableInvite(rawToken) {
 }
 
 /**
- * Accepts an invite: creates (or attaches) the user and binds them to the
- * invite's workspace with the invited role. This is the ONLY way an outside
- * user joins — the workspace comes from the token, never from user input.
+ * Owner activation code created by provisioning. The code is short (so the hub
+ * can show it to a buyer), so it is stored hashed AND bound to the owner's
+ * email — redeeming needs both, which (with rate limiting on the route) makes
+ * guessing infeasible.
  */
-export async function acceptInvite({ rawToken, name, password }) {
-  const invite = await getUsableInvite(rawToken);
-  if (!invite) {
-    throw ApiError.badRequest('This invitation link is invalid or has expired.', {
-      code: 'INVALID_TOKEN',
-    });
-  }
+export async function createOwnerActivation({ workspaceId, ownerEmail, code, ttlDays = 30 }) {
+  await Invitation.create({
+    appId: APP_ID,
+    workspaceId,
+    email: ownerEmail.toLowerCase().trim(),
+    role: WORKSPACE_ROLES.OWNER,
+    tokenHash: hashToken(code),
+    status: INVITATION_STATUS.PENDING,
+    expiresAt: addDuration(new Date(), ttlDays * DURATIONS.DAY),
+  });
+}
 
+/**
+ * Binds a user to an invite's workspace with its role — the shared core of both
+ * link-based joins and code-based owner activation. The workspace always comes
+ * from the invite, never from anything the user typed.
+ */
+async function materializeInvite(invite, { name, password }) {
   // Attach to an existing account (by the invited email) or create a new one.
   let user = invite.email ? await User.findOne({ email: invite.email }) : null;
   if (!user) {
@@ -105,6 +116,36 @@ export async function acceptInvite({ rawToken, name, password }) {
   return { user, workspaceId: invite.workspaceId, role: invite.role };
 }
 
+/** Redeem a link token (team invites). */
+export async function acceptInvite({ rawToken, name, password }) {
+  const invite = await getUsableInvite(rawToken);
+  if (!invite) {
+    throw ApiError.badRequest('This invitation link is invalid or has expired.', {
+      code: 'INVALID_TOKEN',
+    });
+  }
+  return materializeInvite(invite, { name, password });
+}
+
+/** Redeem an email + activation code (owner activation from the hub). */
+export async function acceptByCode({ email, code, name, password }) {
+  const invite = await Invitation.findOne({
+    appId: APP_ID,
+    email: email.toLowerCase().trim(),
+    tokenHash: hashToken(String(code)),
+    status: INVITATION_STATUS.PENDING,
+    expiresAt: { $gt: new Date() },
+  });
+  // Deliberately identical error whether the email or the code is wrong, so it
+  // can't be used to confirm which emails have codes.
+  if (!invite) {
+    throw ApiError.badRequest('That email and code do not match an active invitation.', {
+      code: 'INVALID_CODE',
+    });
+  }
+  return materializeInvite(invite, { name, password });
+}
+
 /** Removes a member from a workspace (owner/admin action). Owner cannot be removed. */
 export async function removeMember({ workspaceId, memberUserId }) {
   const membership = await findActiveMembership(memberUserId);
@@ -120,4 +161,12 @@ export async function removeMember({ workspaceId, memberUserId }) {
   );
 }
 
-export default { listMembers, createInvite, getUsableInvite, acceptInvite, removeMember };
+export default {
+  listMembers,
+  createInvite,
+  getUsableInvite,
+  acceptInvite,
+  createOwnerActivation,
+  acceptByCode,
+  removeMember,
+};

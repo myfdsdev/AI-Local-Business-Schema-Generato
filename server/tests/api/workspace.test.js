@@ -122,6 +122,40 @@ describe('Workspace isolation', () => {
     assert.equal(denied.status, 403);
   });
 
+  it('owner can change a member’s role (member → admin)', async () => {
+    const owner = await makeOwnerWithProject();
+    const invite = await request(getApp())
+      .post('/api/v1/workspace/invite')
+      .set(authHeader(owner.token))
+      .send({ role: 'member' });
+    const token = invite.body.data.joinUrl.split('/join/')[1];
+    const joined = await request(getApp())
+      .post(`/api/v1/workspace/join/${token}`)
+      .send({ name: 'M', password: 'Sup3rSecret!' });
+    const memberUserId = joined.body.data.user.id;
+
+    const changed = await request(getApp())
+      .patch(`/api/v1/workspace/members/${memberUserId}`)
+      .set(authHeader(owner.token))
+      .send({ role: 'admin' });
+    assert.equal(changed.status, 200);
+
+    // The member is now an admin — the roster reflects it.
+    const list = await request(getApp())
+      .get('/api/v1/workspace/members')
+      .set(authHeader(owner.token));
+    const row = list.body.data.members.find((m) => String(m.userId) === String(memberUserId));
+    assert.equal(row.role, 'admin');
+
+    // The owner's own role can't be changed this way.
+    const ownerRow = list.body.data.members.find((m) => m.role === 'owner');
+    const denied = await request(getApp())
+      .patch(`/api/v1/workspace/members/${ownerRow.userId}`)
+      .set(authHeader(owner.token))
+      .send({ role: 'member' });
+    assert.equal(denied.status, 403);
+  });
+
   it('a member cannot access team management', async () => {
     const owner = await makeOwnerWithProject();
     const invite = await request(getApp())

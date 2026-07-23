@@ -187,15 +187,45 @@ export default function TeamPage() {
                           {m.role}
                         </Badge>
                         {m.role !== 'owner' && (
-                          <button
-                            type="button"
-                            onClick={() => removeMutation.mutate(m.userId)}
-                            disabled={removeMutation.isPending}
-                            aria-label={`Remove ${m.name || m.email}`}
-                            className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          <>
+                            {/* Edit role */}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  type="button"
+                                  aria-label={`Change role for ${m.name || m.email}`}
+                                  className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  disabled={m.role === 'admin' || roleMutation.isPending}
+                                  onClick={() => roleMutation.mutate({ userId: m.userId, role: 'admin' })}
+                                >
+                                  Make admin
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  disabled={m.role === 'member' || roleMutation.isPending}
+                                  onClick={() => roleMutation.mutate({ userId: m.userId, role: 'member' })}
+                                >
+                                  Make member
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+
+                            {/* Remove */}
+                            <button
+                              type="button"
+                              onClick={() => removeMutation.mutate(m.userId)}
+                              disabled={removeMutation.isPending}
+                              aria-label={`Remove ${m.name || m.email}`}
+                              className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
                         )}
                       </div>
                     </li>

@@ -28,6 +28,7 @@ const adminOnly = [
 router.get('/stats', ...adminOnly, workspaceController.stats);
 router.get('/members', ...adminOnly, workspaceController.members);
 router.post('/invite', ...adminOnly, workspaceController.invite);
+router.patch('/members/:userId', ...adminOnly, workspaceController.updateMember);
 router.delete('/members/:userId', ...adminOnly, workspaceController.removeMember);
 
 export default router;

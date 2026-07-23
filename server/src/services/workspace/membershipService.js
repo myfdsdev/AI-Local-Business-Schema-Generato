@@ -161,6 +161,27 @@ export async function removeMember({ workspaceId, memberUserId }) {
   );
 }
 
+/**
+ * Changes a member's role. Only admin/member are assignable here — ownership is
+ * not transferable through this path, so the owner's role can't be changed and
+ * nobody can be promoted straight to owner.
+ */
+export async function updateMemberRole({ workspaceId, memberUserId, role }) {
+  if (role !== WORKSPACE_ROLES.ADMIN && role !== WORKSPACE_ROLES.MEMBER) {
+    throw ApiError.badRequest('Role must be "admin" or "member".');
+  }
+
+  const membership = await findActiveMembership(memberUserId);
+  if (!membership || membership.workspaceId !== workspaceId) {
+    throw ApiError.notFound('Member not found in this workspace.');
+  }
+  if (membership.role === WORKSPACE_ROLES.OWNER) {
+    throw ApiError.forbidden('The workspace owner’s role cannot be changed.');
+  }
+
+  await WorkspaceMember.updateOne({ workspaceId, userId: memberUserId }, { role });
+}
+
 export default {
   listMembers,
   createInvite,
@@ -169,4 +190,5 @@ export default {
   createOwnerActivation,
   acceptByCode,
   removeMember,
+  updateMemberRole,
 };

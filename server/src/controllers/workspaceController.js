@@ -59,6 +59,15 @@ export const removeMember = asyncHandler(async (req, res) => {
   return sendSuccess(res, { message: 'Member removed.', data: {} });
 });
 
+export const updateMember = asyncHandler(async (req, res) => {
+  await membership.updateMemberRole({
+    workspaceId: req.workspaceId,
+    memberUserId: req.params.userId,
+    role: req.body.role,
+  });
+  return sendSuccess(res, { message: 'Role updated.', data: {} });
+});
+
 /** Public: what a join token points at (name a password field, show the role). */
 export const joinInfo = asyncHandler(async (req, res) => {
   const invite = await membership.getUsableInvite(req.params.token);
@@ -109,4 +118,14 @@ function issueSessionFor(res, user) {
   });
 }
 
-export default { context, stats, members, invite, removeMember, joinInfo, acceptJoin, activate };
+export default {
+  context,
+  stats,
+  members,
+  invite,
+  removeMember,
+  updateMember,
+  joinInfo,
+  acceptJoin,
+  activate,
+};

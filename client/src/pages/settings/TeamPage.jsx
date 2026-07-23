@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, Copy, Loader2, Trash2, UserPlus, Users } from 'lucide-react';
+import { Copy, Loader2, Pencil, Trash2, UserPlus, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { workspaceApi } from '@/api/workspace';
@@ -12,6 +12,12 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
@@ -60,6 +66,15 @@ export default function TeamPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workspace', 'members'] });
       toast.success('Member removed.');
+    },
+    onError: (err) => toast.error(toApiError(err).message),
+  });
+
+  const roleMutation = useMutation({
+    mutationFn: ({ userId, role }) => workspaceApi.updateMember(userId, role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workspace', 'members'] });
+      toast.success('Role updated.');
     },
     onError: (err) => toast.error(toApiError(err).message),
   });

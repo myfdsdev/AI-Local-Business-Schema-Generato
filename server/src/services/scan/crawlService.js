@@ -131,17 +131,25 @@ export async function runScan(scanId) {
     scan.discoveredPages = candidates.slice(0, 100);
     await scan.save();
 
-    // --- Crawl the rest of the budget --------------------------------------
-    for (const url of candidates) {
-      if (scan.scannedPages.length >= scan.pageLimit) break;
-      if (seen.has(url)) continue;
+    // --- Crawl the rest of the budget, in parallel batches -----------------
+    // Pages are independent, so fetching them one-at-a-time (each up to the
+    // per-page timeout) made a small crawl take minutes. Batches of BATCH keep
+    // it fast while staying polite to the target server.
+    const BATCH = 5;
+    const remaining = Math.max(0, scan.pageLimit - scan.scannedPages.length);
+    const toCrawl = candidates.filter((url) => !seen.has(url)).slice(0, remaining);
 
-      const result = await fetchPage(url);
-      if (!result.ok) {
-        scan.failedPages.push({ url, reason: result.reason, statusCode: result.status });
-        continue;
-      }
-      recordPage(result, parsePage(result.html, result.url), false);
+    for (let i = 0; i < toCrawl.length; i += BATCH) {
+      const batch = toCrawl.slice(i, i + BATCH);
+      const results = await Promise.all(batch.map((url) => fetchPage(url)));
+      batch.forEach((url, index) => {
+        const result = results[index];
+        if (!result.ok) {
+          scan.failedPages.push({ url, reason: result.reason, statusCode: result.status });
+          return;
+        }
+        recordPage(result, parsePage(result.html, result.url), false);
+      });
     }
     await scan.save();
 

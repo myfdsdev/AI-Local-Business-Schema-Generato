@@ -2,7 +2,7 @@ import { ERROR_CODES, SCAN_STATUS } from '../config/constants.js';
 import logger from '../config/logger.js';
 import { WebsiteScan } from '../models/index.js';
 import { getBalance } from '../services/credits/creditService.js';
-import { runScan, startScan } from '../services/scan/crawlService.js';
+import { SCAN_DEADLINE_MS, failScan, runScan, startScan } from '../services/scan/crawlService.js';
 import ApiError from '../utils/ApiError.js';
 import { sendSuccess } from '../utils/ApiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
@@ -43,11 +43,22 @@ export const start = asyncHandler(async (req, res) => {
     projectId: project._id,
     status: { $in: [SCAN_STATUS.QUEUED, SCAN_STATUS.RUNNING] },
   });
+
   if (active) {
-    throw ApiError.conflict('A scan is already running for this project.', {
-      code: 'SCAN_ALREADY_RUNNING',
-      errors: [{ field: 'scanId', message: String(active._id) }],
-    });
+    // A scan older than the deadline can only be a leftover from a crashed or
+    // hung run (e.g. the process restarted mid-scan). Retire it and refund,
+    // rather than blocking the project forever.
+    const startedAt = active.startedAt ?? active.createdAt;
+    const isStale = Date.now() - new Date(startedAt).getTime() > SCAN_DEADLINE_MS;
+
+    if (isStale) {
+      await failScan(active, 'The previous scan stopped unexpectedly and was cleared.');
+    } else {
+      throw ApiError.conflict('A scan is already running for this project.', {
+        code: 'SCAN_ALREADY_RUNNING',
+        errors: [{ field: 'scanId', message: String(active._id) }],
+      });
+    }
   }
 
   const balance = await getBalance(req.user._id);

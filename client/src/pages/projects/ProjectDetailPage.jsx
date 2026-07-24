@@ -45,10 +45,17 @@ export default function ProjectDetailPage() {
     queryKey: ['scan', latestScan?.id],
     queryFn: () => scansApi.get(latestScan.id),
     enabled: Boolean(latestScan?.id) && scanInFlight,
-    // Poll while running; stop as soon as it finishes.
+    // Poll while running; stop as soon as it finishes. Also stop once the scan
+    // is older than the server's own deadline, so a stuck scan can't leave the
+    // UI spinning forever.
     refetchInterval: (query) => {
-      const status = query.state.data?.status;
-      return status === 'queued' || status === 'running' ? 1500 : false;
+      const scanData = query.state.data;
+      const status = scanData?.status;
+      if (status !== 'queued' && status !== 'running') return false;
+
+      const startedAt = scanData?.startedAt ?? scanData?.createdAt;
+      const tooOld = startedAt && Date.now() - new Date(startedAt).getTime() > 150_000;
+      return tooOld ? false : 1500;
     },
   });
 

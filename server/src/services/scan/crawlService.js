@@ -16,6 +16,9 @@ import { loadRobots } from './robots.js';
 /** Pages worth crawling first — these carry the business facts we need. */
 const PRIORITY = ['contact', 'about', 'locations', 'services', 'homepage'];
 
+/** No scan may run longer than this. Anything hung is failed and refunded. */
+export const SCAN_DEADLINE_MS = 120_000;
+
 const stepProgress = (step) => Math.round(((SCAN_STEPS.indexOf(step) + 1) / SCAN_STEPS.length) * 100);
 
 async function setStep(scan, step, extra = {}) {
@@ -70,6 +73,55 @@ export async function runScan(scanId) {
   if (!project) return;
 
   try {
+    // Hard ceiling. Without it, anything that hangs (a stalled socket, a slow
+    // AI call) leaves the scan RUNNING forever — which also blocks the project
+    // from being re-scanned and never refunds the reserved credit.
+    await Promise.race([
+      crawl(scan, project),
+      new Promise((_resolve, reject) =>
+        setTimeout(
+          () => reject(new Error('The scan took too long and was stopped.')),
+          SCAN_DEADLINE_MS,
+        ).unref(),
+      ),
+    ]);
+  } catch (error) {
+    await failScan(scan, error.message);
+  }
+}
+
+/** Marks a scan failed and refunds its reserved credit. Safe to call twice. */
+export async function failScan(scan, message) {
+  logger.error('Scan failed', { scanId: String(scan._id), message });
+
+  scan.status = SCAN_STATUS.FAILED;
+  scan.completedAt = new Date();
+  scan.errors.push({ code: 'SCAN_FAILED', message, url: '' });
+
+  if (scan.creditsReserved > 0 && scan.creditsConsumed === 0) {
+    try {
+      await refundCredits({
+        userId: scan.userId,
+        amount: scan.creditsReserved,
+        reason: 'Website scan failed',
+        projectId: scan.projectId,
+        scanId: scan._id,
+      });
+      scan.creditsReserved = 0;
+    } catch (refundError) {
+      logger.error('Failed to refund scan credit', {
+        scanId: String(scan._id),
+        message: refundError.message,
+      });
+    }
+  }
+
+  await scan.save();
+  await BusinessProject.updateOne({ _id: scan.projectId }, { status: PROJECT_STATUS.DRAFT });
+}
+
+async function crawl(scan, project) {
+  {
     scan.status = SCAN_STATUS.RUNNING;
     scan.startedAt = new Date();
     await setStep(scan, 'preparing_scan');
@@ -183,30 +235,6 @@ export async function runScan(scanId) {
       pages: scan.scannedPages.length,
       schemas: scan.detectedSchemas.length,
     });
-  } catch (error) {
-    logger.error('Scan failed', { scanId: String(scan._id), message: error.message });
-
-    scan.status = SCAN_STATUS.FAILED;
-    scan.completedAt = new Date();
-    scan.errors.push({ code: 'SCAN_FAILED', message: error.message, url: '' });
-
-    // The crawl produced nothing usable, so the reserved credit goes back.
-    if (scan.creditsReserved > 0 && scan.creditsConsumed === 0) {
-      try {
-        await refundCredits({
-          userId: scan.userId,
-          amount: scan.creditsReserved,
-          reason: 'Website scan failed',
-          projectId: scan.projectId,
-          scanId: scan._id,
-        });
-      } catch (refundError) {
-        logger.error('Failed to refund scan credit', { scanId: String(scan._id), message: refundError.message });
-      }
-    }
-
-    await scan.save();
-    await BusinessProject.updateOne({ _id: scan.projectId }, { status: PROJECT_STATUS.DRAFT });
   }
 }
 

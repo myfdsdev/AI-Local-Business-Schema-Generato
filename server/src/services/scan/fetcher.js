@@ -21,12 +21,24 @@ const MAX_REDIRECTS = 5;
  * between this lookup and the socket connect). Closing that properly needs a
  * pinned-IP agent; this covers the realistic case.
  */
+const DNS_TIMEOUT_MS = 5_000;
+
+/** dns.lookup has no built-in timeout, and a hung resolver would hang the scan. */
+function lookupWithTimeout(hostname) {
+  return Promise.race([
+    dns.lookup(hostname, { all: true }),
+    new Promise((_resolve, reject) =>
+      setTimeout(() => reject(new Error('DNS timeout')), DNS_TIMEOUT_MS).unref(),
+    ),
+  ]);
+}
+
 async function assertResolvesToPublicAddress(hostname) {
   if (net.isIP(hostname)) return; // literal IPs are already vetted by assertSafeUrl
 
   let records;
   try {
-    records = await dns.lookup(hostname, { all: true });
+    records = await lookupWithTimeout(hostname);
   } catch {
     throw new UnsafeUrlError('That domain could not be resolved.', 'dns_failure');
   }

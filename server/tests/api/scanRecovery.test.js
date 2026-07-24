@@ -79,6 +79,6 @@ describe('Scan recovery', () => {
       .post(`/api/v1/projects/${projectId}/scan`)
       .set(authHeader(token));
 
-    console.log("DEBUG start:", started.status, JSON.stringify(started.body).slice(0,200)); assert.equal(started.status, 202, "a fresh scan is accepted");
+    assert.equal(started.status, 202, 'a fresh scan is accepted');
   });
 });

@@ -78,8 +78,9 @@ export const start = asyncHandler(async (req, res) => {
     );
   });
 
+  // 202 Accepted: the crawl runs in the background; the client polls for status.
   return sendSuccess(res, {
-    statusCode: 202,
+    status: 202,
     message: 'Scan started.',
     data: { scan: presentScan(scan) },
   });

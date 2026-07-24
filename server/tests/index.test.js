@@ -19,6 +19,7 @@ import './unit/scanSafety.test.js';
 import './api/auth.test.js';
 import './api/projects.test.js';
 import './api/workspace.test.js';
+import './api/scanRecovery.test.js';
 
 // Stop the shared in-memory mongod once every suite has finished.
 after(stopSharedServer);

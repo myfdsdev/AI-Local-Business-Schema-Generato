@@ -76,14 +76,14 @@ export default function LoginPage() {
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{' '}
         <Link to="/register" className="font-medium text-primary hover:underline">
-          Create one
+          How to get access
         </Link>
       </p>
 
       <p className="mt-2 text-center text-sm text-muted-foreground">
-        Bought this app?{' '}
+        Have an activation code?{' '}
         <Link to="/activate" className="font-medium text-primary hover:underline">
-          Activate with your code
+          Activate here
         </Link>
       </p>
     </div>

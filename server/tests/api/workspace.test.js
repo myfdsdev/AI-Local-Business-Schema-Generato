@@ -187,6 +187,50 @@ describe('Workspace isolation', () => {
     assert.equal(res.status, 401);
   });
 
+  it('public signup is closed — a stranger cannot create an account', async () => {
+    process.env.ALLOW_PUBLIC_SIGNUP = 'false';
+
+    const attempt = await request(getApp()).post('/api/v1/auth/register').send({
+      name: 'Stranger',
+      email: 'stranger@example.com',
+      password: 'Sup3rSecret!',
+    });
+
+    assert.equal(attempt.status, 403);
+    assert.equal(attempt.body.code, 'SIGNUP_DISABLED');
+  });
+
+  it('hub provisions with a password → the buyer logs in normally as owner', async () => {
+    process.env.PLATFORM_SECRET = 'test-hub-secret';
+    process.env.ALLOW_PUBLIC_SIGNUP = 'false';
+
+    const prov = await request(getApp())
+      .post('/api/v1/platform/provision')
+      .set('x-platform-secret', 'test-hub-secret')
+      .send({
+        workspaceId: 'ws_pw1',
+        ownerName: 'Buyer',
+        ownerEmail: 'pwbuyer@example.com',
+        password: 'Hub#Generated9',
+      });
+    assert.equal(prov.status, 201);
+    assert.equal(prov.body.data.method, 'password');
+
+    // No activation step — the buyer signs in on the normal login page.
+    const login = await request(getApp())
+      .post('/api/v1/auth/login')
+      .send({ email: 'pwbuyer@example.com', password: 'Hub#Generated9' });
+    assert.equal(login.status, 200);
+
+    // And they are the OWNER of the workspace the hub created.
+    const ctx = await request(getApp())
+      .get('/api/v1/workspace')
+      .set(authHeader(login.body.data.accessToken));
+    assert.equal(ctx.status, 200);
+    assert.equal(ctx.body.data.workspaceId, 'ws_pw1');
+    assert.equal(ctx.body.data.role, 'owner');
+  });
+
   it('hub provisions with a code → owner activates with email + code', async () => {
     process.env.PLATFORM_SECRET = 'test-hub-secret';
 

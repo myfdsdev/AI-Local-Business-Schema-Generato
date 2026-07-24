@@ -24,6 +24,11 @@ export async function seedPlans() {
  * the refresh cookie, so tests authenticate exactly as the client does.
  */
 export async function registerUser(overrides = {}) {
+  // Public signup is closed in production; this fixture opens it so tests can
+  // mint users cheaply. The closed-by-default behaviour is asserted separately
+  // in auth.test.js.
+  process.env.ALLOW_PUBLIC_SIGNUP = 'true';
+
   const payload = {
     name: 'Test User',
     email: uniqueEmail(),

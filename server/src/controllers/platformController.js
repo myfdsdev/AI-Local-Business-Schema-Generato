@@ -2,7 +2,10 @@ import { APP_ID, WORKSPACE_ROLES, WORKSPACE_STATUS } from '../config/constants.j
 import { env } from '../config/env.js';
 import { Workspace } from '../models/index.js';
 import { createInvite, createOwnerActivation } from '../services/workspace/membershipService.js';
-import { generateWorkspaceId } from '../services/workspace/workspaceService.js';
+import {
+  createOwnerWithPassword,
+  generateWorkspaceId,
+} from '../services/workspace/workspaceService.js';
 import ApiError from '../utils/ApiError.js';
 import { safeEqual } from '../utils/tokens.js';
 import { sendCreated, sendSuccess } from '../utils/ApiResponse.js';
@@ -32,7 +35,7 @@ export function requireHubSecret(req, _res, next) {
  * user is created when they accept (they choose their own password then).
  */
 export const provision = asyncHandler(async (req, res) => {
-  const { ownerName, ownerEmail, activationCode } = req.body;
+  const { ownerName, ownerEmail, activationCode, password } = req.body;
   const workspaceId = req.body.workspaceId || generateWorkspaceId();
 
   if (!ownerEmail) {
@@ -51,6 +54,17 @@ export const provision = asyncHandler(async (req, res) => {
       name: ownerName ?? '',
       ownerEmail: ownerEmail.toLowerCase().trim(),
       status: WORKSPACE_STATUS.ACTIVE,
+    });
+  }
+
+  // Preferred path: the hub generated the password, so the owner account is
+  // created here and ready. The hub emails the buyer their email + password and
+  // they sign in on the normal login page — no activation step.
+  if (password) {
+    await createOwnerWithPassword({ workspaceId, ownerEmail, ownerName, password });
+    return sendCreated(res, {
+      message: 'Workspace provisioned.',
+      data: { workspaceId, method: 'password', loginUrl: `${clientUrl()}/login` },
     });
   }
 

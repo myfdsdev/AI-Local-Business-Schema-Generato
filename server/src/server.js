@@ -2,9 +2,18 @@ import { createApp } from './app.js';
 import { connectDatabase, disconnectDatabase } from './config/database.js';
 import { env } from './config/env.js';
 import logger from './config/logger.js';
+import { recoverOrphanedScans } from './services/scan/crawlService.js';
 
 async function start() {
   await connectDatabase();
+
+  // Reconcile scans left mid-flight by a previous process before serving; a
+  // failure here must not stop the server from starting.
+  try {
+    await recoverOrphanedScans();
+  } catch (error) {
+    logger.error('Could not recover orphaned scans', { message: error.message });
+  }
 
   const app = createApp();
   const server = app.listen(env.PORT, () => {

@@ -90,6 +90,26 @@ export async function runScan(scanId) {
   }
 }
 
+/**
+ * Scans run in this process, so any scan still marked queued/running at startup
+ * is an orphan from a previous process that crashed or was restarted mid-scan.
+ * Nothing else will ever finish them: without this they stay "scanning" forever,
+ * hold the project in a scanning state, and never refund their credit.
+ */
+export async function recoverOrphanedScans() {
+  const orphans = await WebsiteScan.find({
+    status: { $in: [SCAN_STATUS.QUEUED, SCAN_STATUS.RUNNING] },
+  });
+  if (orphans.length === 0) return 0;
+
+  for (const scan of orphans) {
+    await failScan(scan, 'The scan was interrupted when the server restarted.');
+  }
+
+  logger.warn('Recovered orphaned scans on startup', { count: orphans.length });
+  return orphans.length;
+}
+
 /** Marks a scan failed and refunds its reserved credit. Safe to call twice. */
 export async function failScan(scan, message) {
   logger.error('Scan failed', { scanId: String(scan._id), message });

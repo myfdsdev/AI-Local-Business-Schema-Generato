@@ -53,10 +53,10 @@ const baseSchema = z.object({
   // those endpoints are disabled (this app runs standalone).
   PLATFORM_SECRET: z.string().optional(),
 
-  // Accounts are created by the hub on purchase, or by an owner inviting their
-  // team — never by strangers signing themselves up. Set true only for an open
-  // public signup.
-  ALLOW_PUBLIC_SIGNUP: bool(false),
+  // Open signup: anyone can register and becomes the owner of their own new
+  // workspace. Set to false for the hub-only model (accounts created only by
+  // provisioning or team invites).
+  ALLOW_PUBLIC_SIGNUP: bool(true),
 });
 
 const parsed = baseSchema.safeParse(process.env);

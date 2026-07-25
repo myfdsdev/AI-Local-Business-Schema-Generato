@@ -41,9 +41,9 @@ function issueSession(res, { user, tokens }) {
 export const register = asyncHandler(async (req, res) => {
   // Accounts come from a purchase (the hub provisions the owner) or from a
   // workspace owner inviting a teammate — never from open self-signup.
-  // Read at request time (falling back to parsed env) so the switch can be
-  // flipped without a restart, and exercised in tests.
-  const signupAllowed = env.ALLOW_PUBLIC_SIGNUP || process.env.ALLOW_PUBLIC_SIGNUP === 'true';
+  // Open unless explicitly turned off (ALLOW_PUBLIC_SIGNUP=false). Read at
+  // request time so it can be flipped without a restart and exercised in tests.
+  const signupAllowed = process.env.ALLOW_PUBLIC_SIGNUP !== 'false';
   if (!signupAllowed) {
     throw new ApiError(403, 'Accounts are created when you buy the app. Check your email for your login details, or ask your workspace owner to invite you.', {
       code: 'SIGNUP_DISABLED',

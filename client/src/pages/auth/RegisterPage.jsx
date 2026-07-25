@@ -1,45 +1,89 @@
-import { Link } from 'react-router-dom';
-import { Lock } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Link, useNavigate } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { applyApiErrorToForm } from '@/hooks/useApiForm';
+import { registerSchema } from '@/schemas/auth.schema';
+import { useAuth } from '@/store/AuthContext';
 
 /**
- * Public signup is closed. Accounts exist only two ways: the AppsFields hub
- * creates the owner when someone buys, or a workspace owner invites a teammate.
- * The backend rejects /auth/register regardless — this page just explains why.
+ * Open signup: creating an account makes you the owner of your own new
+ * workspace. Business name and role are asked during onboarding.
  */
 export default function RegisterPage() {
+  const { register: registerUser } = useAuth();
+  const navigate = useNavigate();
+
+  const form = useForm({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { name: '', email: '', password: '' },
+  });
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = form;
+
+  const onSubmit = async (values) => {
+    try {
+      await registerUser(values);
+      toast.success('Account created. Welcome to LocalSchema AI.');
+      navigate('/onboarding', { replace: true });
+    } catch (error) {
+      applyApiErrorToForm(error, form);
+    }
+  };
+
   return (
     <div>
-      <span className="mb-5 flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
-        <Lock className="h-5 w-5" />
-      </span>
-
-      <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight">
-        Accounts come with your purchase
-      </h1>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-        You can&apos;t create an account here. When you buy LocalSchema AI, we email your login
-        details — sign in with those.
-      </p>
-      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-        Joining someone&apos;s team? Ask them to send you an invite link.
+      <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight">Create your account</h1>
+      <p className="mt-1 text-sm text-muted-foreground">
+        You&apos;ll own your own workspace — your projects and data stay private to you.
       </p>
 
-      <Button asChild className="mt-6 w-full">
-        <Link to="/login">Go to sign in</Link>
-      </Button>
+      <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4" noValidate>
+        {errors.root && (
+          <Alert variant="destructive">
+            <AlertDescription>{errors.root.message}</AlertDescription>
+          </Alert>
+        )}
+
+        <Field id="name" label="Full name" error={errors.name?.message} required>
+          <Input autoComplete="name" placeholder="Dana Owner" {...register('name')} />
+        </Field>
+
+        <Field id="email" label="Email" error={errors.email?.message} required>
+          <Input type="email" autoComplete="email" placeholder="you@example.com" {...register('email')} />
+        </Field>
+
+        <Field
+          id="password"
+          label="Password"
+          error={errors.password?.message}
+          hint="At least 10 characters, with a letter and a number."
+          required
+        >
+          <Input type="password" autoComplete="new-password" placeholder="••••••••" {...register('password')} />
+        </Field>
+
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+          Create account
+        </Button>
+      </form>
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
-        Haven&apos;t bought it yet?{' '}
-        <a
-          href="https://app.appsfields.com"
-          className="font-medium text-primary hover:underline"
-          target="_blank"
-          rel="noreferrer noopener"
-        >
-          Get LocalSchema AI
-        </a>
+        Already have an account?{' '}
+        <Link to="/login" className="font-medium text-primary hover:underline">
+          Sign in
+        </Link>
       </p>
     </div>
   );

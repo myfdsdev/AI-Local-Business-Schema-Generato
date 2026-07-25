@@ -4,7 +4,6 @@ import { ComingSoon } from '@/components/common/ComingSoon';
 import { AppLayout } from '@/layouts/AppLayout';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { ProtectedRoute, PublicOnlyRoute } from '@/routes/ProtectedRoute';
-
 import LandingPage from '@/pages/marketing/LandingPage';
 import PricingPage from '@/pages/marketing/PricingPage';
 import LoginPage from '@/pages/auth/LoginPage';

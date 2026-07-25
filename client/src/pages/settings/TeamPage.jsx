@@ -8,6 +8,7 @@ import { InvitePanel } from '@/components/workspace/InvitePanel';
 import { MembersPanel } from '@/components/workspace/MembersPanel';
 import { WorkspaceStats } from '@/components/workspace/WorkspaceStats';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 /**
@@ -23,14 +24,15 @@ const TABS = [
 export default function TeamPage() {
   const [activeId, setActiveId] = useState(TABS[0].id);
 
-  // Only owners/admins manage the team; plain members get a notice (the backend
-  // enforces this too).
-  const { data: workspace } = useQuery({
+  // Only owners/admins manage the team. Gate POSITIVELY: show the tools only
+  // once we've confirmed an owner/admin role, so a member never briefly sees the
+  // tabs, and the notice reliably shows for members and on a failed role check.
+  const { data: workspace, isLoading: roleLoading } = useQuery({
     queryKey: ['workspace', 'context'],
     queryFn: workspaceApi.context,
     retry: false,
   });
-  const isMember = workspace?.role === 'member';
+  const canManage = workspace?.role === 'owner' || workspace?.role === 'admin';
 
   const ActivePanel = TABS.find((tab) => tab.id === activeId)?.Panel ?? TABS[0].Panel;
 
@@ -41,7 +43,9 @@ export default function TeamPage() {
         description="Everyone here shares this workspace. Its data is private to you — no other customer can see it."
       />
 
-      {isMember ? (
+      {roleLoading ? (
+        <Skeleton className="h-40 w-full rounded-xl" />
+      ) : !canManage ? (
         <Alert>
           <AlertTitle>Members can&apos;t manage the team</AlertTitle>
           <AlertDescription>

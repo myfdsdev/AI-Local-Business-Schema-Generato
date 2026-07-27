@@ -29,6 +29,11 @@ const baseSchema = z.object({
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
 
+  // Encrypts tenant-supplied secrets at rest (their own AI provider keys).
+  // Generate with: openssl rand -base64 32
+  // When unset it is derived from JWT_REFRESH_SECRET — see utils/secretBox.js.
+  ENCRYPTION_KEY: z.string().optional(),
+
   // AI provider for schema generation. Each provider has its own key + model;
   // the active one is selected by AI_PROVIDER.
   AI_PROVIDER: z.enum(['openai', 'gemini']).default('openai'),

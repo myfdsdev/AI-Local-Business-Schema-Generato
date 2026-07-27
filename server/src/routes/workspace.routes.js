@@ -5,7 +5,7 @@ import * as workspaceController from '../controllers/workspaceController.js';
 import { authenticate, resolveWorkspace, requireWorkspaceRole } from '../middleware/auth.js';
 import { authLimiter } from '../middleware/rateLimit.js';
 import { validate } from '../middleware/validate.js';
-import { updateWorkspaceSchema } from '../validators/workspace.validators.js';
+import { saveApiKeySchema, updateWorkspaceSchema } from '../validators/workspace.validators.js';
 
 const router = Router();
 
@@ -29,6 +29,14 @@ const adminOnly = [
 
 router.patch('/', ...adminOnly, validate({ body: updateWorkspaceSchema }), workspaceController.update);
 router.get('/stats', ...adminOnly, workspaceController.stats);
+
+// Bring-your-own AI key. Owner/admin only — a plain member must not be able to
+// read the masked key, replace it, or delete it. authLimiter throttles writes so
+// the save endpoint can't be used to probe keys against the provider.
+router.get('/api-key', ...adminOnly, workspaceController.getApiKey);
+router.put('/api-key', ...adminOnly, authLimiter, validate({ body: saveApiKeySchema }), workspaceController.putApiKey);
+router.post('/api-key/test', ...adminOnly, authLimiter, workspaceController.testApiKey);
+router.delete('/api-key', ...adminOnly, workspaceController.deleteApiKey);
 router.get('/members', ...adminOnly, workspaceController.members);
 router.post('/invite', ...adminOnly, workspaceController.invite);
 router.patch('/members/:userId', ...adminOnly, workspaceController.updateMember);

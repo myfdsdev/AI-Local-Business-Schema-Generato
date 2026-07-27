@@ -2,9 +2,10 @@ import { Router } from 'express';
 
 import { z } from 'zod';
 
-import { activeProvider, isAiConfigured } from '../services/ai/aiClient.js';
+import { activeProvider, isAiAvailableFor } from '../services/ai/aiClient.js';
 import { askAssistant } from '../services/ai/assistantService.js';
-import { authenticate } from '../middleware/auth.js';
+import { getWorkspaceKey } from '../services/workspace/apiKeyService.js';
+import { authenticate, resolveWorkspace } from '../middleware/auth.js';
 import { scanLimiter } from '../middleware/rateLimit.js';
 import { validate } from '../middleware/validate.js';
 import ApiError from '../utils/ApiError.js';
@@ -26,17 +27,28 @@ const chatSchema = z.object({
 const router = Router();
 
 // Signed-in users only — this calls a paid AI backend. scanLimiter bounds the
-// per-user rate for the same reason.
+// per-user rate for the same reason. resolveWorkspace attaches req.workspaceId
+// so the tenant's own provider key is used when they have set one.
 router.use(authenticate);
+router.use(resolveWorkspace);
 
 router.get(
   '/capabilities',
-  asyncHandler(async (_req, res) =>
-    sendSuccess(res, {
+  asyncHandler(async (req, res) => {
+    const [aiConfigured, workspaceKey] = await Promise.all([
+      isAiAvailableFor(req.workspaceId),
+      getWorkspaceKey(req.workspaceId),
+    ]);
+
+    return sendSuccess(res, {
       message: 'OK',
-      data: { aiConfigured: isAiConfigured(), aiProvider: activeProvider() },
-    }),
-  ),
+      data: {
+        aiConfigured,
+        aiProvider: workspaceKey?.provider ?? activeProvider(),
+        usingOwnKey: Boolean(workspaceKey),
+      },
+    });
+  }),
 );
 
 router.post(
@@ -44,13 +56,16 @@ router.post(
   scanLimiter,
   validate({ body: chatSchema }),
   asyncHandler(async (req, res) => {
-    if (!isAiConfigured()) {
-      throw new ApiError(503, 'The assistant is not configured on this server yet.', {
+    if (!(await isAiAvailableFor(req.workspaceId))) {
+      throw new ApiError(503, 'The assistant is not configured yet. Add your API key in Settings.', {
         code: 'AI_NOT_CONFIGURED',
       });
     }
 
-    const result = await askAssistant({ messages: req.body.messages });
+    const result = await askAssistant({
+      messages: req.body.messages,
+      workspaceId: req.workspaceId,
+    });
     return sendSuccess(res, { message: 'OK', data: result });
   }),
 );

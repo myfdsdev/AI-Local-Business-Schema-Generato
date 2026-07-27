@@ -31,7 +31,7 @@ function buildUserContent({ notes, documents }) {
  * source metadata so the UI can show what was read and flag any files it could
  * not parse.
  */
-export async function generateFromDocuments({ files = [], notes = '' }) {
+export async function generateFromDocuments({ files = [], notes = '', workspaceId }) {
   const { documents, failures } = await extractFromFiles(files);
 
   if (documents.length === 0 && !notes.trim()) {
@@ -49,6 +49,7 @@ export async function generateFromDocuments({ files = [], notes = '' }) {
   const completion = await chatJson({
     system: SCHEMA_SYSTEM_PROMPT,
     user: userContent,
+    workspaceId,
   });
 
   const validation = parseAndValidate(completion.content);
@@ -76,8 +77,8 @@ export async function generateFromDocuments({ files = [], notes = '' }) {
  * Generates from typed text alone (no files) — the same pipeline without the
  * parsing step. Useful for the "paste business details" path.
  */
-export async function generateFromText(notes) {
-  return generateFromDocuments({ files: [], notes });
+export async function generateFromText(notes, { workspaceId } = {}) {
+  return generateFromDocuments({ files: [], notes, workspaceId });
 }
 
 /**

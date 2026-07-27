@@ -7,6 +7,9 @@
  *
  * Individual files can still be run directly, e.g. `node --test tests/unit/url.test.js`.
  */
+// Must come first: sets NODE_ENV=test before config/env.js is evaluated.
+import './setup.js';
+
 import { after } from 'node:test';
 
 import { stopSharedServer } from './helpers/testServer.js';
@@ -20,6 +23,7 @@ import './api/auth.test.js';
 import './api/projects.test.js';
 import './api/locations.test.js';
 import './api/workspace.test.js';
+import './api/apiKeys.test.js';
 import './api/scanRecovery.test.js';
 
 // Stop the shared in-memory mongod once every suite has finished.

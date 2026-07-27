@@ -12,6 +12,7 @@ export { SystemLog } from './SystemLog.js';
 export { TeamMember } from './TeamMember.js';
 export { User } from './User.js';
 export { Workspace } from './Workspace.js';
+export { WorkspaceApiKey } from './WorkspaceApiKey.js';
 export { WorkspaceMember } from './WorkspaceMember.js';
 export { ValidationResult } from './ValidationResult.js';
 export { VerificationResult } from './VerificationResult.js';

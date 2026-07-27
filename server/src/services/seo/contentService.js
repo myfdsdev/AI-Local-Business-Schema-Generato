@@ -32,13 +32,14 @@ function buildUserContent({ businessName, category, location, pageType, keywords
  * is Zod-validated (spec: validate every AI response) before it is returned,
  * and is explicitly a draft for the user to review — no facts are invented.
  */
-export async function generateContent(input) {
+export async function generateContent(input, { workspaceId } = {}) {
   const userContent = buildUserContent(input);
 
   const completion = await chatJson({
     system: CONTENT_SYSTEM_PROMPT,
     user: userContent,
     maxTokens: 4000,
+    workspaceId,
   });
 
   const parsed = extractJson(completion.content);

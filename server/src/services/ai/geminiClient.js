@@ -23,15 +23,28 @@ export function isGeminiConfigured() {
  * extraction/generation prompts); `json: false` returns prose, which is what the
  * assistant chat needs.
  */
-async function geminiGenerate({ system, messages, temperature = 0, maxTokens = 1500, json }) {
-  if (!isGeminiConfigured()) {
+async function geminiGenerate({
+  system,
+  messages,
+  temperature = 0,
+  maxTokens = 1500,
+  json,
+  // The workspace's own key when they have supplied one; falls back to the
+  // platform key from env. Resolved by apiKeyService — never read from a
+  // request body here.
+  credential,
+}) {
+  const apiKey = credential?.apiKey ?? env.GEMINI_API_KEY;
+  const model = credential?.model || env.GEMINI_MODEL;
+
+  if (!apiKey) {
     throw new ApiError(503, 'AI is not configured on this server yet.', {
       code: 'AI_NOT_CONFIGURED',
       errors: [{ field: 'server', message: 'Set GEMINI_API_KEY to enable AI features.' }],
     });
   }
 
-  const url = `${GEMINI_BASE}/${encodeURIComponent(env.GEMINI_MODEL)}:generateContent`;
+  const url = `${GEMINI_BASE}/${encodeURIComponent(model)}:generateContent`;
 
   const generationConfig = {
     temperature,
@@ -56,7 +69,7 @@ async function geminiGenerate({ system, messages, temperature = 0, maxTokens = 1
         generationConfig,
       },
       {
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
         timeout: 45_000,
       },
     );
@@ -72,7 +85,7 @@ async function geminiGenerate({ system, messages, temperature = 0, maxTokens = 1
       });
     }
 
-    return { content, model: env.GEMINI_MODEL, usage: response.data?.usageMetadata ?? null };
+    return { content, model, usage: response.data?.usageMetadata ?? null };
   } catch (error) {
     if (error instanceof ApiError) throw error;
 
@@ -100,7 +113,7 @@ async function geminiGenerate({ system, messages, temperature = 0, maxTokens = 1
       });
     }
     if (status === 404) {
-      throw new ApiError(502, `The AI model "${env.GEMINI_MODEL}" was not found for this key.`, {
+      throw new ApiError(502, `The AI model "${model}" was not found for this key.`, {
         code: 'AI_MODEL_NOT_FOUND',
         errors: [{ field: 'GEMINI_MODEL', message: providerMessage ?? 'Unknown model.' }],
       });
@@ -113,19 +126,20 @@ async function geminiGenerate({ system, messages, temperature = 0, maxTokens = 1
 }
 
 /** Single-turn call that must return parseable JSON. */
-export function geminiChatJson({ system, user, temperature = 0, maxTokens = 1500 }) {
+export function geminiChatJson({ system, user, temperature = 0, maxTokens = 1500, credential }) {
   return geminiGenerate({
     system,
     messages: [{ role: 'user', content: user }],
     temperature,
     maxTokens,
     json: true,
+    credential,
   });
 }
 
 /** Multi-turn conversational call returning prose. */
-export function geminiChatText({ system, messages, temperature = 0.4, maxTokens = 1200 }) {
-  return geminiGenerate({ system, messages, temperature, maxTokens, json: false });
+export function geminiChatText({ system, messages, temperature = 0.4, maxTokens = 1200, credential }) {
+  return geminiGenerate({ system, messages, temperature, maxTokens, json: false, credential });
 }
 
 export default { geminiChatJson, geminiChatText, isGeminiConfigured };

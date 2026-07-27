@@ -25,14 +25,16 @@ function buildUserContent({ businessName, category, location, services, language
   return lines.join('\n');
 }
 
-export async function researchKeywords(input) {
+export async function researchKeywords(input, { workspaceId } = {}) {
   const userContent = buildUserContent(input);
 
   // --- Source: AI provider (swap here for a real keyword-data API) ----------
+  // workspaceId picks the tenant's own provider key when they have set one.
   const completion = await chatJson({
     system: KEYWORD_SYSTEM_PROMPT,
     user: userContent,
     maxTokens: 4000,
+    workspaceId,
   });
 
   const parsed = extractJson(completion.content);

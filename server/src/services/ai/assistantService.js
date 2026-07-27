@@ -24,7 +24,7 @@ Answer the user's latest message using the conversation so far.`;
  * Runs one assistant turn. History is trimmed and normalised here so the route
  * can accept whatever the client has accumulated without unbounded growth.
  */
-export async function askAssistant({ messages }) {
+export async function askAssistant({ messages, workspaceId }) {
   const trimmed = messages
     .filter((message) => message.content?.trim())
     .slice(-MAX_HISTORY)
@@ -38,6 +38,7 @@ export async function askAssistant({ messages }) {
     messages: trimmed,
     temperature: 0.4,
     maxTokens: 900,
+    workspaceId,
   });
 
   return { reply: completion.content.trim(), model: completion.model };

@@ -9,6 +9,13 @@ export const workspaceApi = {
   updateMember: (userId, role) =>
     api.patch(`/workspace/members/${userId}`, { role }).then((r) => r.data),
   removeMember: (userId) => api.delete(`/workspace/members/${userId}`).then((r) => r.data),
+  // Bring-your-own AI key. The server only ever returns a masked descriptor
+  // (provider + last 4) — the key itself never comes back.
+  getApiKey: () => api.get('/workspace/api-key').then((r) => r.data.data),
+  saveApiKey: (payload) => api.put('/workspace/api-key', payload).then((r) => r.data.data.key),
+  testApiKey: () => api.post('/workspace/api-key/test').then((r) => r.data.data.key),
+  deleteApiKey: () => api.delete('/workspace/api-key').then((r) => r.data),
+
   joinInfo: (token) => api.get(`/workspace/join/${token}`).then((r) => r.data.data),
   acceptJoin: (token, payload) =>
     api.post(`/workspace/join/${token}`, payload).then((r) => r.data.data),

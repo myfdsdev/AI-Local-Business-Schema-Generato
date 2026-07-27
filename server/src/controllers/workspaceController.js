@@ -1,5 +1,7 @@
 import { env } from '../config/env.js';
+import * as apiKeys from '../services/workspace/apiKeyService.js';
 import * as membership from '../services/workspace/membershipService.js';
+import { activeProvider, isAiConfigured } from '../services/ai/aiClient.js';
 import { getWorkspace, renameWorkspace } from '../services/workspace/workspaceService.js';
 import { getWorkspaceStats } from '../services/workspace/statsService.js';
 import { signAccessToken, signRefreshToken, setRefreshCookie } from '../services/auth/tokenService.js';
@@ -30,6 +32,48 @@ export const update = asyncHandler(async (req, res) => {
     message: 'Workspace updated.',
     data: { workspaceId: workspace.workspaceId, name: workspace.name, status: workspace.status },
   });
+});
+
+// --- Bring-your-own AI key ---------------------------------------------------
+// Every handler below scopes to req.workspaceId (from the session), so a caller
+// can only ever read or change their OWN workspace's key. The plaintext key is
+// never returned — only the last 4 characters.
+
+/** The caller's stored key, masked, plus what they fall back to without one. */
+export const getApiKey = asyncHandler(async (req, res) => {
+  const key = await apiKeys.getWorkspaceKey(req.workspaceId);
+  return sendSuccess(res, {
+    message: 'OK',
+    data: {
+      key,
+      // So the UI can say "you're using the shared platform key" honestly.
+      platformFallback: { available: isAiConfigured(), provider: activeProvider() },
+    },
+  });
+});
+
+/** Stores or replaces the key. The provider is detected from the key itself. */
+export const putApiKey = asyncHandler(async (req, res) => {
+  const key = await apiKeys.saveWorkspaceKey({
+    workspaceId: req.workspaceId,
+    userId: req.user._id,
+    apiKey: req.body.apiKey,
+    model: req.body.model,
+  });
+  return sendSuccess(res, { message: 'API key saved.', data: { key } });
+});
+
+export const testApiKey = asyncHandler(async (req, res) => {
+  const key = await apiKeys.testWorkspaceKey(req.workspaceId);
+  return sendSuccess(res, {
+    message: key.status === 'active' ? 'Key verified.' : 'Key stored but could not be verified.',
+    data: { key },
+  });
+});
+
+export const deleteApiKey = asyncHandler(async (req, res) => {
+  await apiKeys.deleteWorkspaceKey(req.workspaceId);
+  return sendSuccess(res, { message: 'API key removed.', data: {} });
 });
 
 /** Workspace dashboard stats — owner/admin only (enforced by the route). */
@@ -138,6 +182,10 @@ function issueSessionFor(res, user) {
 export default {
   context,
   update,
+  getApiKey,
+  putApiKey,
+  testApiKey,
+  deleteApiKey,
   stats,
   members,
   invite,

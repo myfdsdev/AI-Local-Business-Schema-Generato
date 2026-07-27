@@ -1,6 +1,6 @@
 import logger from '../../config/logger.js';
 import { extractJson } from '../../utils/jsonExtract.js';
-import { chatJson, isAiConfigured } from '../ai/aiClient.js';
+import { chatJson, isAiAvailableFor } from '../ai/aiClient.js';
 
 const MAX_CHARS_PER_PAGE = 4000;
 const MAX_TOTAL_CHARS = 18_000;
@@ -62,7 +62,12 @@ function buildUserContent({ project, pages }) {
  * unconfirmed until they approve it.
  */
 export async function extractBusinessData({ project, pages }) {
-  if (!isAiConfigured()) {
+  // The scan runs in the background, so the tenant context comes from the
+  // project record rather than a request — the workspace's own key is used when
+  // they have one.
+  const workspaceId = project?.workspaceId;
+
+  if (!(await isAiAvailableFor(workspaceId))) {
     return {
       businessData: null,
       warnings: ['AI is not configured, so business details were not extracted from the crawled pages.'],
@@ -79,6 +84,7 @@ export async function extractBusinessData({ project, pages }) {
       system: EXTRACTION_PROMPT,
       user: buildUserContent({ project, pages: usable }),
       maxTokens: 2000,
+      workspaceId,
     });
 
     const parsed = extractJson(completion.content);

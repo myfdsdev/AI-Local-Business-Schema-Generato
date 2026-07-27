@@ -8,6 +8,7 @@ import { workspaceApi } from '@/api/workspace';
 import { toApiError } from '@/api/client';
 import { ErrorState } from '@/components/common/ErrorState';
 import { PageHeader } from '@/components/common/PageHeader';
+import { ApiKeyPanel } from '@/components/workspace/ApiKeyPanel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -139,6 +140,9 @@ export default function SettingsPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Bring-your-own AI key — owner/admin only, same as the backend route. */}
+          {canEdit && <ApiKeyPanel />}
 
           {/* Quick links to related management pages. */}
           <Card>

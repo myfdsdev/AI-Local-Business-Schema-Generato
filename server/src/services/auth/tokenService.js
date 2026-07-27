@@ -63,10 +63,19 @@ export function verifyRefreshToken(token) {
 }
 
 export function refreshCookieOptions() {
+  // The frontend and backend run on separate origins (e.g. different
+  // *.onrender.com subdomains), so the refresh cookie is cross-site. It must be
+  // SameSite=None to be sent at all — and browsers require Secure with None,
+  // which is why None is only used in production (HTTPS). Locally everything is
+  // same-origin via the Vite proxy, so Lax over plain http works.
+  //
+  // CSRF risk stays low: the only cookie-authenticated route is /auth/refresh,
+  // and its response (a new access token) is unreadable cross-origin thanks to
+  // CORS, so a forged refresh yields the attacker nothing.
   return {
     httpOnly: true,
-    secure: isProduction, // HTTPS-only in production; plain http works locally.
-    sameSite: isProduction ? 'strict' : 'lax',
+    secure: isProduction, // required whenever sameSite is 'none'
+    sameSite: isProduction ? 'none' : 'lax',
     signed: true,
     path: '/api/v1/auth',
     maxAge: parseDuration(env.JWT_REFRESH_EXPIRES_IN),

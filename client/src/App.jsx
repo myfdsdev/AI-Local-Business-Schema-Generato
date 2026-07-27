@@ -15,10 +15,13 @@ import DashboardPage from '@/pages/dashboard/DashboardPage';
 import ProjectsListPage from '@/pages/projects/ProjectsListPage';
 import NewProjectPage from '@/pages/projects/NewProjectPage';
 import ProjectDetailPage from '@/pages/projects/ProjectDetailPage';
+import LocationsPage from '@/pages/locations/LocationsPage';
+import BillingPage from '@/pages/billing/BillingPage';
 import GenerateFromDocumentsPage from '@/pages/tools/GenerateFromDocumentsPage';
 import KeywordResearchPage from '@/pages/tools/KeywordResearchPage';
 import ContentGeneratorPage from '@/pages/tools/ContentGeneratorPage';
 import ProfilePage from '@/pages/settings/ProfilePage';
+import SettingsPage from '@/pages/settings/SettingsPage';
 import TeamPage from '@/pages/settings/TeamPage';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import NotFoundPage from '@/pages/NotFoundPage';
@@ -59,36 +62,9 @@ export default function App() {
           <Route path="keywords" element={<KeywordResearchPage />} />
           <Route path="content" element={<ContentGeneratorPage />} />
           <Route path="team" element={<TeamPage />} />
-          <Route
-            path="locations"
-            element={
-              <ComingSoon
-                title="Locations"
-                description="Manage physical business locations across your projects."
-                note="Multi-location management arrives with the location engine. Projects already record whether they are single- or multi-location."
-              />
-            }
-          />
-          <Route
-            path="billing"
-            element={
-              <ComingSoon
-                title="Billing"
-                description="Manage your plan and scan credits."
-                note="Billing integrates in a later phase. Your plan and remaining credits are already tracked."
-              />
-            }
-          />
-          <Route
-            path="settings"
-            element={
-              <ComingSoon
-                title="Settings"
-                description="Workspace and notification preferences."
-                note="Account details and password are available on your Profile page."
-              />
-            }
-          />
+          <Route path="locations" element={<LocationsPage />} />
+          <Route path="billing" element={<BillingPage />} />
+          <Route path="settings" element={<SettingsPage />} />
           <Route path="profile" element={<ProfilePage />} />
         </Route>
       </Route>

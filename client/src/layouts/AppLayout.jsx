@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
+  CreditCard,
   FolderKanban,
   LayoutDashboard,
   LogOut,
@@ -52,6 +53,7 @@ const NAV_ITEMS = [
   { to: '/app/content', label: 'Content writer', icon: PenLine },
   { to: '/app/team', label: 'Team', icon: Users, adminOnly: true },
   { to: '/app/locations', label: 'Locations', icon: MapPin, adminOnly: true },
+  { to: '/app/billing', label: 'Plan & billing', icon: CreditCard, adminOnly: true },
   { to: '/app/settings', label: 'Settings', icon: Settings, adminOnly: true },
 ];
 

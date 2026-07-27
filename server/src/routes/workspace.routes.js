@@ -4,6 +4,8 @@ import { WORKSPACE_ROLES } from '../config/constants.js';
 import * as workspaceController from '../controllers/workspaceController.js';
 import { authenticate, resolveWorkspace, requireWorkspaceRole } from '../middleware/auth.js';
 import { authLimiter } from '../middleware/rateLimit.js';
+import { validate } from '../middleware/validate.js';
+import { updateWorkspaceSchema } from '../validators/workspace.validators.js';
 
 const router = Router();
 
@@ -25,6 +27,7 @@ const adminOnly = [
   requireWorkspaceRole(WORKSPACE_ROLES.OWNER, WORKSPACE_ROLES.ADMIN),
 ];
 
+router.patch('/', ...adminOnly, validate({ body: updateWorkspaceSchema }), workspaceController.update);
 router.get('/stats', ...adminOnly, workspaceController.stats);
 router.get('/members', ...adminOnly, workspaceController.members);
 router.post('/invite', ...adminOnly, workspaceController.invite);

@@ -1,5 +1,6 @@
 import { env } from '../config/env.js';
 import * as membership from '../services/workspace/membershipService.js';
+import { getWorkspace, renameWorkspace } from '../services/workspace/workspaceService.js';
 import { getWorkspaceStats } from '../services/workspace/statsService.js';
 import { signAccessToken, signRefreshToken, setRefreshCookie } from '../services/auth/tokenService.js';
 import { sendCreated, sendSuccess } from '../utils/ApiResponse.js';
@@ -8,12 +9,28 @@ import asyncHandler from '../utils/asyncHandler.js';
 const clientUrl = () => env.CLIENT_URL?.replace(/\/$/, '') ?? '';
 
 /** The caller's own workspace context — used by the UI to show the right nav. */
-export const context = asyncHandler(async (req, res) =>
-  sendSuccess(res, {
+export const context = asyncHandler(async (req, res) => {
+  const workspace = await getWorkspace(req.workspaceId);
+  return sendSuccess(res, {
     message: 'OK',
-    data: { workspaceId: req.workspaceId, role: req.wsRole },
-  }),
-);
+    data: {
+      workspaceId: req.workspaceId,
+      role: req.wsRole,
+      name: workspace?.name ?? '',
+      status: workspace?.status ?? 'active',
+      ownerEmail: workspace?.ownerEmail ?? '',
+    },
+  });
+});
+
+/** Rename the caller's workspace — owner/admin only (enforced by the route). */
+export const update = asyncHandler(async (req, res) => {
+  const workspace = await renameWorkspace({ workspaceId: req.workspaceId, name: req.body.name });
+  return sendSuccess(res, {
+    message: 'Workspace updated.',
+    data: { workspaceId: workspace.workspaceId, name: workspace.name, status: workspace.status },
+  });
+});
 
 /** Workspace dashboard stats — owner/admin only (enforced by the route). */
 export const stats = asyncHandler(async (req, res) => {
@@ -120,6 +137,7 @@ function issueSessionFor(res, user) {
 
 export default {
   context,
+  update,
   stats,
   members,
   invite,

@@ -22,6 +22,17 @@ export function findActiveMembership(userId) {
   }).lean();
 }
 
+/** The workspace record for a given id, or null. */
+export function getWorkspace(workspaceId) {
+  return Workspace.findOne({ appId: APP_ID, workspaceId }).lean();
+}
+
+/** Renames a workspace. Caller authorization is enforced by the route. */
+export async function renameWorkspace({ workspaceId, name }) {
+  await Workspace.updateOne({ appId: APP_ID, workspaceId }, { $set: { name: name.trim() } });
+  return getWorkspace(workspaceId);
+}
+
 /**
  * Guarantees the user has a workspace. On self-registration this creates their
  * personal workspace with them as owner; it also self-heals any pre-existing
@@ -91,6 +102,8 @@ export async function createOwnerWithPassword({ workspaceId, ownerEmail, ownerNa
 export default {
   generateWorkspaceId,
   findActiveMembership,
+  getWorkspace,
+  renameWorkspace,
   ensurePersonalWorkspace,
   createOwnerWithPassword,
 };

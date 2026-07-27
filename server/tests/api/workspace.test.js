@@ -231,6 +231,39 @@ describe('Workspace isolation', () => {
     assert.equal(ctx.body.data.role, 'owner');
   });
 
+  it('an owner can rename their workspace; a member cannot', async () => {
+    const owner = await makeOwnerWithProject();
+    const app = getApp();
+
+    // Owner renames successfully and the new name is reflected in context.
+    const renamed = await request(app)
+      .patch('/api/v1/workspace')
+      .set(authHeader(owner.token))
+      .send({ name: 'Acme HQ' });
+    assert.equal(renamed.status, 200);
+    assert.equal(renamed.body.data.name, 'Acme HQ');
+
+    const ctx = await request(app).get('/api/v1/workspace').set(authHeader(owner.token));
+    assert.equal(ctx.body.data.name, 'Acme HQ');
+
+    // A plain member of that workspace is forbidden from renaming it.
+    const invite = await request(app)
+      .post('/api/v1/workspace/invite')
+      .set(authHeader(owner.token))
+      .send({ email: 'teammate@example.com', role: 'member' });
+    const token = invite.body.data.joinUrl.split('/join/')[1];
+    const joined = await request(app)
+      .post(`/api/v1/workspace/join/${token}`)
+      .send({ name: 'Teammate', password: 'Sup3rSecret!' });
+    const memberToken = joined.body.data.accessToken;
+
+    const blocked = await request(app)
+      .patch('/api/v1/workspace')
+      .set(authHeader(memberToken))
+      .send({ name: 'Hijacked' });
+    assert.equal(blocked.status, 403);
+  });
+
   it('hub provisions with a code → owner activates with email + code', async () => {
     process.env.PLATFORM_SECRET = 'test-hub-secret';
 

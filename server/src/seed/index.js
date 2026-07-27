@@ -131,7 +131,7 @@ async function seedDemoProjects(owner) {
 
     if (demoLocations[key]) {
       for (const location of demoLocations[key]) {
-        await Location.create({ ...location, projectId: project._id, userId: owner._id });
+        await Location.create({ ...location, workspaceId, projectId: project._id, userId: owner._id });
       }
     }
 

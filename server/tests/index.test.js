@@ -18,6 +18,7 @@ import './unit/describesLocalBusiness.test.js';
 import './unit/scanSafety.test.js';
 import './api/auth.test.js';
 import './api/projects.test.js';
+import './api/locations.test.js';
 import './api/workspace.test.js';
 import './api/scanRecovery.test.js';
 

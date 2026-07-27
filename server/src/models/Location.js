@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 
+import { APP_ID } from '../config/constants.js';
 import {
   geoCoordinatesSchema,
   imageSchema,
@@ -11,6 +12,9 @@ import {
 
 const locationSchema = new mongoose.Schema(
   {
+    appId: { type: String, default: APP_ID, index: true },
+    // The buyer/tenant this location belongs to — the isolation boundary.
+    workspaceId: { type: String, required: true, index: true },
     projectId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'BusinessProject',
@@ -50,7 +54,7 @@ const locationSchema = new mongoose.Schema(
 );
 
 locationSchema.index({ projectId: 1, slug: 1 }, { unique: true });
-locationSchema.index({ projectId: 1, createdAt: -1 });
+locationSchema.index({ workspaceId: 1, createdAt: -1 });
 
 export const Location = mongoose.models.Location || mongoose.model('Location', locationSchema);
 

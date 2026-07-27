@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   CreditCard,
   FolderKanban,
@@ -14,6 +14,7 @@ import {
   Sparkles,
   Sun,
   User as UserIcon,
+  UserPlus,
   Users,
 } from 'lucide-react';
 
@@ -24,6 +25,7 @@ import { ChatWidget } from '@/components/assistant/ChatWidget';
 import { Logo } from '@/components/common/Logo';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -99,6 +101,19 @@ export function AppLayout() {
           </NavLink>
 
           <div className="flex items-center gap-3">
+            {/* Only owner/admin can invite — the backend enforces the same, so
+                showing it to a member would just produce a 403. Unlike the nav
+                items below, this renders only once the role is CONFIRMED: a
+                header button that appears then vanishes shifts the whole bar. */}
+            {isWorkspaceAdmin && (
+              <Button asChild variant="outline" size="sm">
+                <Link to="/app/team?tab=invite">
+                  <UserPlus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Invite</span>
+                </Link>
+              </Button>
+            )}
+
             <Badge variant="secondary" className="hidden sm:inline-flex">
               {user?.scanCredits ?? 0} credits
             </Badge>

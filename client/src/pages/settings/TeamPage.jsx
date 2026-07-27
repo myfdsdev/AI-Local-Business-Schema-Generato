@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { BarChart3, UserPlus, Users } from 'lucide-react';
 
 import { workspaceApi } from '@/api/workspace';
@@ -22,7 +22,16 @@ const TABS = [
 ];
 
 export default function TeamPage() {
-  const [activeId, setActiveId] = useState(TABS[0].id);
+  // The URL is the source of truth for the active tab, so other parts of the
+  // app can deep-link straight to a section (e.g. the header's Invite button
+  // → /app/team?tab=invite). An unknown value falls back to the first tab.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requested = searchParams.get('tab');
+  const activeId = TABS.some((tab) => tab.id === requested) ? requested : TABS[0].id;
+
+  const setActiveId = (id) =>
+    // Default tab keeps the URL clean; `replace` avoids stacking history entries.
+    setSearchParams(id === TABS[0].id ? {} : { tab: id }, { replace: true });
 
   // Only owners/admins manage the team. Gate POSITIVELY: show the tools only
   // once we've confirmed an owner/admin role, so a member never briefly sees the

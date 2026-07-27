@@ -34,15 +34,26 @@ const baseSchema = z.object({
   // When unset it is derived from JWT_REFRESH_SECRET — see utils/secretBox.js.
   ENCRYPTION_KEY: z.string().optional(),
 
-  // AI provider for schema generation. Each provider has its own key + model;
-  // the active one is selected by AI_PROVIDER.
-  AI_PROVIDER: z.enum(['openai', 'gemini']).default('openai'),
+  // Platform-wide fallback AI provider, used by any workspace that has not set
+  // its own key in Settings. Each provider has its own key + model; the active
+  // one is selected by AI_PROVIDER. Workspaces may use ANY supported provider
+  // regardless of this setting — see services/ai/providers.js.
+  AI_PROVIDER: z.enum(['openai', 'gemini', 'anthropic', 'groq', 'openrouter']).default('openai'),
 
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_MODEL: z.string().default('gpt-4o-mini'),
 
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
+
+  ANTHROPIC_API_KEY: z.string().optional(),
+  ANTHROPIC_MODEL: z.string().default('claude-sonnet-5'),
+
+  GROQ_API_KEY: z.string().optional(),
+  GROQ_MODEL: z.string().default('llama-3.3-70b-versatile'),
+
+  OPENROUTER_API_KEY: z.string().optional(),
+  OPENROUTER_MODEL: z.string().default('openai/gpt-4o-mini'),
 
   ADMIN_EMAIL: z.string().email().optional(),
   ADMIN_PASSWORD: z.string().optional(),

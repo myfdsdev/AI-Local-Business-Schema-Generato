@@ -2,6 +2,7 @@ import { env } from '../config/env.js';
 import * as apiKeys from '../services/workspace/apiKeyService.js';
 import * as membership from '../services/workspace/membershipService.js';
 import { activeProvider, isAiConfigured } from '../services/ai/aiClient.js';
+import { listProviders } from '../services/ai/providers.js';
 import { getWorkspace, renameWorkspace } from '../services/workspace/workspaceService.js';
 import { getWorkspaceStats } from '../services/workspace/statsService.js';
 import { signAccessToken, signRefreshToken, setRefreshCookie } from '../services/auth/tokenService.js';
@@ -46,6 +47,9 @@ export const getApiKey = asyncHandler(async (req, res) => {
     message: 'OK',
     data: {
       key,
+      // The UI renders the supported list from here rather than hardcoding it,
+      // so registering a provider server-side is enough to surface it.
+      providers: listProviders(),
       // So the UI can say "you're using the shared platform key" honestly.
       platformFallback: { available: isAiConfigured(), provider: activeProvider() },
     },

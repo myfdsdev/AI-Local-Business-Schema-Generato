@@ -23,15 +23,24 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatRelativeTime } from '@/lib/utils';
 
 /**
- * Mirrors server/src/services/ai/providerDetect.js so the user sees which
- * provider was recognised the moment they paste. The server re-detects and is
- * the authority — this is only a hint.
+ * Mirrors server/src/services/ai/providers.js so the user sees which provider
+ * was recognised the moment they paste. The server re-detects and is the
+ * authority — this is only a hint.
+ *
+ * ORDER MATTERS, same as the server: "sk-ant-" and "sk-or-" are also matched by
+ * OpenAI's broader "sk-", so they must be tested first.
  */
+const SIGNATURES = [
+  { provider: 'anthropic', label: 'Anthropic (Claude)', match: /^sk-ant-[A-Za-z0-9_-]{20,}$/ },
+  { provider: 'openrouter', label: 'OpenRouter', match: /^sk-or-[A-Za-z0-9_-]{20,}$/ },
+  { provider: 'groq', label: 'Groq', match: /^gsk_[A-Za-z0-9]{20,}$/ },
+  { provider: 'gemini', label: 'Google Gemini', match: /^AIza[\w-]{30,}$/ },
+  { provider: 'openai', label: 'OpenAI', match: /^sk-[A-Za-z0-9_-]{20,}$/ },
+];
+
 function detectProvider(key) {
   const value = key.trim();
-  if (/^AIza[\w-]{30,}$/.test(value)) return { provider: 'gemini', label: 'Google Gemini' };
-  if (/^sk-[A-Za-z0-9_-]{20,}$/.test(value)) return { provider: 'openai', label: 'OpenAI' };
-  return null;
+  return SIGNATURES.find((signature) => signature.match.test(value)) ?? null;
 }
 
 const STATUS_META = {
@@ -94,6 +103,8 @@ export function ApiKeyPanel() {
 
   const stored = data?.key ?? null;
   const platform = data?.platformFallback;
+  // Server-driven, so registering a provider backend-side surfaces it here.
+  const supported = data?.providers ?? [];
   const detected = draft.trim() ? detectProvider(draft) : null;
   const busy = saveMutation.isPending || testMutation.isPending || deleteMutation.isPending;
 
@@ -186,7 +197,7 @@ export function ApiKeyPanel() {
               <Field
                 id="apiKey"
                 label={stored ? 'Replace key' : 'Paste your API key'}
-                hint="OpenAI keys start with sk- · Google Gemini keys start with AIza. We detect which automatically."
+                hint="Paste a key from any supported provider — we detect which one automatically."
               >
                 <div className="relative">
                   <Input
@@ -229,6 +240,26 @@ export function ApiKeyPanel() {
                     </>
                   )}
                 </p>
+              )}
+
+              {/* Which providers this app accepts, driven by the server. */}
+              {supported.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground">Supported:</span>
+                  {supported.map((provider) => (
+                    <Badge
+                      key={provider.id}
+                      variant={
+                        detected?.provider === provider.id || stored?.provider === provider.id
+                          ? 'default'
+                          : 'outline'
+                      }
+                      className="font-normal"
+                    >
+                      {provider.label}
+                    </Badge>
+                  ))}
+                </div>
               )}
 
               <div className="flex justify-end">

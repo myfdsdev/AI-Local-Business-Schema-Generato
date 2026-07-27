@@ -11,6 +11,9 @@ import { clearDatabase, getApp, startTestServer, stopTestServer } from '../helpe
 // Realistic shapes, not real credentials — these never leave the test process.
 const GEMINI_KEY = `AIza${'A1b2C3d4E5f6G7h8'.repeat(2)}xyzw`;
 const OPENAI_KEY = `sk-proj-${'T3stK3yMaterial0'.repeat(3)}abcd`;
+const ANTHROPIC_KEY = `sk-ant-api03-${'Cl4ud3T3stM4t3r1'.repeat(2)}wxyz`;
+const GROQ_KEY = `gsk_${'Gr0qT3stK3yM4t3r'.repeat(2)}0987`;
+const OPENROUTER_KEY = `sk-or-v1-${'0penR0ut3rT3stK3'.repeat(2)}5678`;
 
 async function owner() {
   const { response } = await registerUser();
@@ -58,6 +61,77 @@ describe('Workspace API keys', () => {
     const saved = await saveKey(alice.token, OPENAI_KEY);
     assert.equal(saved.status, 200);
     assert.equal(saved.body.data.key.provider, 'openai');
+  });
+
+  it('recognises every supported LLM provider from the key alone', async () => {
+    const cases = [
+      [ANTHROPIC_KEY, 'anthropic'],
+      [GROQ_KEY, 'groq'],
+      [OPENROUTER_KEY, 'openrouter'],
+      [GEMINI_KEY, 'gemini'],
+      [OPENAI_KEY, 'openai'],
+    ];
+
+    for (const [key, expected] of cases) {
+      // A fresh workspace per case: one key per workspace is the whole point.
+      const user = await owner();
+      const saved = await saveKey(user.token, key);
+      assert.equal(saved.status, 200, `${expected} key should save`);
+      assert.equal(saved.body.data.key.provider, expected);
+    }
+  });
+
+  it('prefers the specific prefix over the broad "sk-" OpenAI pattern', async () => {
+    // sk-ant-… and sk-or-… also match OpenAI's sk-… rule; registry order decides.
+    const anthropic = await owner();
+    const openrouter = await owner();
+
+    assert.equal((await saveKey(anthropic.token, ANTHROPIC_KEY)).body.data.key.provider, 'anthropic');
+    assert.equal((await saveKey(openrouter.token, OPENROUTER_KEY)).body.data.key.provider, 'openrouter');
+  });
+
+  it('lists the supported providers for the settings UI', async () => {
+    const alice = await owner();
+    const read = await request(getApp()).get('/api/v1/workspace/api-key').set(authHeader(alice.token));
+
+    const ids = read.body.data.providers.map((provider) => provider.id);
+    assert.deepEqual(ids.sort(), ['anthropic', 'gemini', 'groq', 'openai', 'openrouter']);
+  });
+
+  it('keeps different providers isolated across workspaces', async () => {
+    const claudeShop = await owner();
+    const geminiShop = await owner();
+
+    await saveKey(claudeShop.token, ANTHROPIC_KEY);
+    await saveKey(geminiShop.token, GEMINI_KEY);
+
+    const claudeWs = (await request(getApp()).get('/api/v1/workspace').set(authHeader(claudeShop.token)))
+      .body.data.workspaceId;
+    const geminiWs = (await request(getApp()).get('/api/v1/workspace').set(authHeader(geminiShop.token)))
+      .body.data.workspaceId;
+
+    const claudeCred = await resolveCredential(claudeWs);
+    const geminiCred = await resolveCredential(geminiWs);
+
+    // Each workspace resolves to its OWN provider and its OWN key.
+    assert.equal(claudeCred.provider, 'anthropic');
+    assert.equal(claudeCred.apiKey, ANTHROPIC_KEY);
+    assert.equal(geminiCred.provider, 'gemini');
+    assert.equal(geminiCred.apiKey, GEMINI_KEY);
+    assert.notEqual(claudeCred.apiKey, geminiCred.apiKey);
+  });
+
+  it('routes OpenAI-compatible providers to their own base URL', async () => {
+    const groqShop = await owner();
+    await saveKey(groqShop.token, GROQ_KEY);
+
+    const workspaceId = (await request(getApp()).get('/api/v1/workspace').set(authHeader(groqShop.token)))
+      .body.data.workspaceId;
+    const credential = await resolveCredential(workspaceId);
+
+    // Groq speaks the OpenAI format but must not be sent to api.openai.com.
+    assert.equal(credential.provider, 'groq');
+    assert.ok(credential.baseUrl?.includes('api.groq.com'), 'Groq base URL applied');
   });
 
   it('rejects a key whose format matches no provider', async () => {

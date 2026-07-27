@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
 import { APP_ID } from '../config/constants.js';
+import { PROVIDER_IDS } from '../services/ai/providers.js';
 
 /**
  * A tenant's own AI provider key, encrypted at rest. One per workspace: the
@@ -14,7 +15,9 @@ const workspaceApiKeySchema = new mongoose.Schema(
     appId: { type: String, default: APP_ID, index: true },
     workspaceId: { type: String, required: true, index: true },
 
-    provider: { type: String, enum: ['openai', 'gemini'], required: true },
+    // Enum comes from the provider registry, so a new provider is supported the
+    // moment it is registered — no schema edit needed.
+    provider: { type: String, enum: PROVIDER_IDS, required: true },
     model: { type: String, default: '' },
 
     // AES-256-GCM payload — see utils/secretBox.js. `select: false` keeps these

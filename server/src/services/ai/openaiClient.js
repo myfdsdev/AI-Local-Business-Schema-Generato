@@ -9,6 +9,9 @@ import logger from '../../config/logger.js';
  * Minimal OpenAI Chat Completions client over axios (the spec mandates axios
  * rather than the OpenAI SDK).
  *
+ * Also serves every OpenAI-compatible provider (Groq, OpenRouter): they speak
+ * the same wire format, so they only differ by `credential.baseUrl`.
+ *
  * The key comes either from the calling workspace's own stored credential or
  * from server env — never from a request body — and is never returned to the
  * client.
@@ -26,6 +29,9 @@ export function isOpenaiConfigured() {
 async function openaiGenerate({ system, messages, temperature, maxTokens, json, credential }) {
   const apiKey = credential?.apiKey ?? env.OPENAI_API_KEY;
   const model = credential?.model || env.OPENAI_MODEL;
+  const url = credential?.baseUrl ?? OPENAI_URL;
+  // Named in error messages so a Groq/OpenRouter failure doesn't read "OpenAI".
+  const label = credential?.providerLabel ?? 'OpenAI';
 
   if (!apiKey) {
     throw new ApiError(503, 'AI is not configured on this server yet.', {
@@ -43,7 +49,7 @@ async function openaiGenerate({ system, messages, temperature, maxTokens, json, 
   if (json) body.response_format = { type: 'json_object' };
 
   try {
-    const response = await axios.post(OPENAI_URL, body, {
+    const response = await axios.post(url, body, {
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       timeout: 45_000,
     });
@@ -63,7 +69,7 @@ async function openaiGenerate({ system, messages, temperature, maxTokens, json, 
     // Surface OpenAI's own error text in the server log to make key/model
     // problems diagnosable without guesswork.
     const providerMessage = error.response?.data?.error?.message;
-    logger.error('OpenAI request failed', { status, message: error.message, providerMessage });
+    logger.error(`${label} request failed`, { status, message: error.message, providerMessage });
 
     if (status === 401) {
       throw new ApiError(502, 'The AI service rejected the configured API key.', {

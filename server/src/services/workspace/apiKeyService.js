@@ -4,9 +4,13 @@ import logger from '../../config/logger.js';
 import { WorkspaceApiKey } from '../../models/index.js';
 import ApiError from '../../utils/ApiError.js';
 import { openSecret, sealSecret } from '../../utils/secretBox.js';
-import { detectProvider, last4, providerLabel } from '../ai/providerDetect.js';
-import { geminiChatText } from '../ai/geminiClient.js';
-import { openaiChatText } from '../ai/openaiClient.js';
+import {
+  detectProvider,
+  getProvider,
+  last4,
+  providerLabel,
+  transportFor,
+} from '../ai/providers.js';
 
 /**
  * Bring-your-own AI keys, one per workspace.
@@ -48,12 +52,18 @@ async function verifyKey({ provider, apiKey, model }) {
   // The suite has no outbound network; skip the probe and store as unverified.
   if (isTest) return { ok: false, reason: 'skipped' };
 
-  const probe = { system: 'Reply with OK.', messages: [{ role: 'user', content: 'OK' }], maxTokens: 5 };
-  const credential = { apiKey, model };
+  const entry = getProvider(provider);
+  if (!entry) return { ok: false, reason: 'unknown_provider' };
+
+  const credential = { apiKey, model, ...transportFor(provider) };
 
   try {
-    if (provider === 'gemini') await geminiChatText({ ...probe, credential });
-    else await openaiChatText({ ...probe, credential });
+    await entry.chatText({
+      system: 'Reply with OK.',
+      messages: [{ role: 'user', content: 'OK' }],
+      maxTokens: 5,
+      credential,
+    });
     return { ok: true };
   } catch (error) {
     // Only a genuine rejection should block saving. Network blips, rate limits
@@ -86,7 +96,8 @@ export async function saveWorkspaceKey({ workspaceId, userId, apiKey, model }) {
       errors: [
         {
           field: 'apiKey',
-          message: 'Expected an OpenAI key starting "sk-" or a Google Gemini key starting "AIza".',
+          message:
+            'Expected OpenAI "sk-…", Anthropic "sk-ant-…", OpenRouter "sk-or-…", Groq "gsk_…", or Google Gemini "AIza…".',
         },
       ],
     });
@@ -163,7 +174,13 @@ export async function resolveCredential(workspaceId) {
         WorkspaceApiKey.updateOne({ _id: doc._id }, { $set: { lastUsedAt: new Date() } }).catch(
           () => {},
         );
-        return { provider: doc.provider, apiKey, model: doc.model, source: 'workspace' };
+        return {
+          provider: doc.provider,
+          apiKey,
+          model: doc.model,
+          ...transportFor(doc.provider),
+          source: 'workspace',
+        };
       } catch (error) {
         // Undecryptable (ENCRYPTION_KEY rotated) — fall back rather than break
         // the tenant's app, and tell them to re-paste it.
@@ -176,9 +193,14 @@ export async function resolveCredential(workspaceId) {
   }
 
   const provider = env.AI_PROVIDER;
-  const apiKey = provider === 'gemini' ? env.GEMINI_API_KEY : env.OPENAI_API_KEY;
-  const model = provider === 'gemini' ? env.GEMINI_MODEL : env.OPENAI_MODEL;
-  return { provider, apiKey, model, source: 'platform' };
+  const entry = getProvider(provider);
+  return {
+    provider,
+    apiKey: entry?.platformKey(),
+    model: entry?.defaultModel(),
+    ...transportFor(provider),
+    source: 'platform',
+  };
 }
 
 export default {

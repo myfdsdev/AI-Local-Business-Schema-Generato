@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -74,6 +75,20 @@ export default function ContentGeneratorPage() {
     // Backend accepts a comma-separated string or an array; send the string.
     mutation.mutate({ ...formValues, keywords: formValues.keywords });
   };
+
+  // Arriving from keyword research (keywords + business already handed over) →
+  // generate immediately, so the user doesn't have to click Generate again. The
+  // ref guard makes it fire exactly once, never on a plain visit or re-render.
+  const autoRan = useRef(false);
+  useEffect(() => {
+    if (autoRan.current) return;
+    const arrivedFromKeywords = Array.isArray(handoff.keywords) && handoff.keywords.length > 0;
+    const ready = handoff.businessName?.trim() && handoff.category?.trim();
+    if (arrivedFromKeywords && ready) {
+      autoRan.current = true;
+      handleSubmit(onSubmit)();
+    }
+  }, [handoff, handleSubmit]);
 
   const copyText = async (text, label) => {
     await navigator.clipboard.writeText(text);

@@ -70,7 +70,8 @@ try {
       log('failedPages   :', JSON.stringify(s.failedPages ?? []).slice(0, 300));
       log('detectedSchema:', JSON.stringify(s.detectedSchemas ?? []).slice(0, 300));
       log('extractedData :', JSON.stringify(s.extractedBusinessData ?? null).slice(0, 400));
-      log('error         :', s.error ?? s.errorMessage ?? '(none)');
+      log('errors[]      :', JSON.stringify(s.errors ?? '(field absent from JSON)'));
+      log('  UI would show:', s.errors?.[0]?.message ?? 'The scan could not be completed.');
       log('warnings      :', JSON.stringify(s.warnings ?? []).slice(0, 300));
       break;
     }

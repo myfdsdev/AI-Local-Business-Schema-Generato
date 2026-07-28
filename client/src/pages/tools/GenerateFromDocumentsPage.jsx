@@ -2,7 +2,6 @@ import { useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   CheckCircle2,
-  FileCode,
   FileSearch,
   FileText,
   FileUp,
@@ -80,8 +79,12 @@ export default function GenerateFromDocumentsPage() {
   const errorInfo = mutation.isError ? toApiError(mutation.error) : null;
   const canSubmit = (files.length > 0 || notes.trim().length > 0) && !mutation.isPending;
 
+  // Chat-style flow: until there is something to show, the composer is the only
+  // thing on screen. Output (or a failure) appears beneath it afterwards.
+  const hasOutput = Boolean(result || errorInfo || mutation.isPending);
+
   return (
-    <div>
+    <div className="mx-auto max-w-3xl">
       {/* Header */}
       <div className="mb-6 flex items-start gap-4">
         <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary sm:flex">
@@ -96,8 +99,9 @@ export default function GenerateFromDocumentsPage() {
         </div>
       </div>
 
-      {/* How it works */}
-      <div className="mb-6 grid gap-3 sm:grid-cols-3">
+      {/* How it works — onboarding only; it disappears once there's a result so
+          the screen stays focused on the composer and the output. */}
+      <div className={cn('mb-6 grid gap-3 sm:grid-cols-3', hasOutput && 'hidden')}>
         {STEPS.map(({ icon: Icon, title, text }, index) => (
           <div key={title} className="flex items-start gap-3 rounded-lg border border-border bg-card p-3">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
@@ -125,9 +129,8 @@ export default function GenerateFromDocumentsPage() {
         </Alert>
       )}
 
-      {/* Input left, results right on wide screens; stacks below xl. */}
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,480px)_minmax(0,1fr)] xl:items-start">
-        <div className="space-y-6 xl:sticky xl:top-24">
+      {/* Single column: composer first, output below it. */}
+      <div className="space-y-6">
         {/* Unified "Add your info" composer: type and/or attach files together. */}
         <Card>
           <CardContent className="space-y-4 p-6">
@@ -218,10 +221,7 @@ export default function GenerateFromDocumentsPage() {
             </p>
           </CardContent>
         </Card>
-        </div>
 
-        {/* Results column */}
-        <div className="space-y-6">
         {errorInfo && (
           <Alert variant="destructive">
             <AlertTitle>Couldn&apos;t generate the schema</AlertTitle>
@@ -282,21 +282,8 @@ export default function GenerateFromDocumentsPage() {
 
         {result && result.hasBusinessData !== false && <JsonLdResult result={result} />}
 
-        {/* Placeholder so the results column isn't blank before first run. */}
-        {!result && !errorInfo && !mutation.isPending && (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center gap-2 px-6 py-16 text-center">
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                <FileCode className="h-5 w-5" />
-              </div>
-              <h3 className="text-sm font-semibold">Your JSON-LD will appear here</h3>
-              <p className="max-w-sm text-xs text-muted-foreground">
-                Add your business info on the left and hit Generate. You&apos;ll get validated
-                schema you can copy or download.
-              </p>
-            </CardContent>
-          </Card>
-        )}
+        {/* No empty-state card: before the first run the composer is the whole
+            screen, so a placeholder would just be dead space. */}
 
         {mutation.isPending && (
           <Card className="border-dashed">
@@ -306,7 +293,6 @@ export default function GenerateFromDocumentsPage() {
             </CardContent>
           </Card>
         )}
-        </div>
       </div>
     </div>
   );

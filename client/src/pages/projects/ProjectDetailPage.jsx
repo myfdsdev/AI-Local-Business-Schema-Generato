@@ -22,6 +22,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/utils';
 
+/**
+ * How long before an in-flight scan is considered stuck rather than running.
+ * Must stay ABOVE the server's own SCAN_DEADLINE_MS (120s) so a legitimately
+ * slow scan is never cut off early.
+ */
+const STALE_SCAN_MS = 150_000;
+
 /** Phase 1 shows the confirmed project facts; Phase 2 adds the scan workflow. */
 export default function ProjectDetailPage() {
   const { projectId } = useParams();
@@ -54,13 +61,22 @@ export default function ProjectDetailPage() {
       if (status !== 'queued' && status !== 'running') return false;
 
       const startedAt = scanData?.startedAt ?? scanData?.createdAt;
-      const tooOld = startedAt && Date.now() - new Date(startedAt).getTime() > 150_000;
+      const tooOld = startedAt && Date.now() - new Date(startedAt).getTime() > STALE_SCAN_MS;
       return tooOld ? false : 1500;
     },
   });
 
   const scan = liveScan ?? latestScan;
-  const isScanning = scan?.status === 'queued' || scan?.status === 'running';
+
+  // A scan older than the server's own deadline is STUCK, not running. Without
+  // this the button stays disabled on "Scanning…" forever and there is no way
+  // out of the UI: the server clears a stale scan when a new one starts, but
+  // the user could never trigger that. Treat stale as finished so they can retry.
+  const scanStartedAt = scan?.startedAt ?? scan?.createdAt;
+  const scanIsStale =
+    Boolean(scanStartedAt) && Date.now() - new Date(scanStartedAt).getTime() > STALE_SCAN_MS;
+  const isScanning =
+    (scan?.status === 'queued' || scan?.status === 'running') && !scanIsStale;
 
   const scanMutation = useMutation({
     mutationFn: () => scansApi.start(projectId),
@@ -141,7 +157,13 @@ export default function ProjectDetailPage() {
               ) : (
                 <ScanSearch className="h-4 w-4" />
               )}
-              {isScanning ? 'Scanning…' : scan ? 'Re-scan website' : 'Scan website'}
+              {isScanning
+                ? 'Scanning…'
+                : scanIsStale
+                  ? 'Retry scan'
+                  : scan
+                    ? 'Re-scan website'
+                    : 'Scan website'}
             </Button>
             <Button
               variant="outline"
@@ -203,6 +225,22 @@ export default function ProjectDetailPage() {
                     </p>
                   </div>
                 </div>
+
+                {/* The action belongs with the instruction. Previously the only
+                    scan button lived up in the page header, so this card told
+                    the user to scan and gave them nothing to click. */}
+                <Button
+                  className="mt-4"
+                  onClick={() => scanMutation.mutate()}
+                  disabled={isScanning || scanMutation.isPending}
+                >
+                  {isScanning || scanMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ScanSearch className="h-4 w-4" />
+                  )}
+                  Scan {project.normalizedDomain}
+                </Button>
               </CardContent>
             </Card>
           )}

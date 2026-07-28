@@ -235,7 +235,12 @@ export function ApiKeyPanel() {
                     <>
                       <TriangleAlert className="h-3.5 w-3.5 text-amber-500" />
                       <span className="text-muted-foreground">
-                        Not a recognised OpenAI or Gemini key yet.
+                        {/* Google AI Studio also hands out short-lived "AQ." OAuth
+                            tokens for code samples. They look like keys but expire
+                            in under an hour, so name the mistake explicitly. */}
+                        {draft.trim().startsWith('AQ.')
+                          ? 'That is a temporary Google OAuth token, not an API key. Create a real key at aistudio.google.com/apikey — it starts with "AIza".'
+                          : 'Not a recognised key yet — check the supported prefixes below.'}
                       </span>
                     </>
                   )}

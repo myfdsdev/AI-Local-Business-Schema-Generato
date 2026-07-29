@@ -35,7 +35,9 @@
       Open this page, click the button, then move the downloaded file into
       client/public/og-banner.png. Delete this file afterwards if you like.
     -->
-    <img id="preview" src="/og-banner.svg" width="1200" height="630" alt="Banner preview" />
+    <!-- Relative paths so this works both from the dev server and by
+         double-clicking the file straight off disk. -->
+    <img id="preview" src="og-banner.svg" width="1200" height="630" alt="Banner preview" />
     <button id="save">Download og-banner.png (1200×630)</button>
     <p>
       Save the download into <code>client/public/og-banner.png</code>, then redeploy.
@@ -44,7 +46,7 @@
 
     <script>
       document.getElementById('save').addEventListener('click', async () => {
-        const source = await fetch('/og-banner.svg').then((r) => r.text());
+        const source = await fetch('og-banner.svg').then((r) => r.text());
         // Inline the SVG as a blob URL so the canvas stays untainted and
         // toBlob() is allowed to read the pixels back out.
         const url = URL.createObjectURL(new Blob([source], { type: 'image/svg+xml' }));

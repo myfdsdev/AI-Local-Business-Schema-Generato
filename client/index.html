@@ -3,17 +3,30 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>LocalSchema AI — Local Business Schema Generator</title>
     <meta
       name="description"
-      content="Help search engines understand your local business and improve local search visibility with accurate structured data."
+      content="Generate validated Schema.org JSON-LD for your local business from your own documents and website. Scan for existing schema, fix what's broken, and copy install-ready markup."
     />
-    <title>LocalSchema AI — Local Business Schema Generator</title>
+    <link rel="canonical" href="https://ai-local-business-schema-generato-client.onrender.com/" />
 
-    <!-- Favicon. SVG covers every modern browser and stays crisp at any size;
-         the .ico fallback is only for legacy IE/older Safari pinned tabs. -->
+    <!-- Crawling. The signed-in app lives under /app and is behind auth, so
+         there is nothing for a crawler to reach there anyway. -->
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="author" content="LocalSchema AI" />
+    <meta name="application-name" content="LocalSchema AI" />
+
+    <!-- Favicon. SVG covers every modern browser and stays crisp at any size. -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <meta name="theme-color" content="#05524F" />
+    <meta name="msapplication-TileColor" content="#05524F" />
+
+    <!-- Installed / standalone behaviour on iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="LocalSchema AI" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
     <!-- Link previews (Facebook, LinkedIn, Slack, WhatsApp, iMessage).
          og:image must be an ABSOLUTE url — relative paths are ignored by most
@@ -32,6 +45,12 @@
     />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/png" />
+    <meta
+      property="og:image:alt"
+      content="LocalSchema AI — validated JSON-LD for local businesses"
+    />
+    <meta property="og:locale" content="en_US" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="LocalSchema AI — Local Business Schema Generator" />
@@ -43,6 +62,63 @@
       name="twitter:image"
       content="https://ai-local-business-schema-generato-client.onrender.com/og-banner.png"
     />
+    <meta
+      name="twitter:image:alt"
+      content="LocalSchema AI — validated JSON-LD for local businesses"
+    />
+
+    <!--
+      Structured data for this app itself. A schema generator with no schema of
+      its own would be a poor advertisement — this is the same SoftwareApplication
+      markup the product teaches users to publish.
+
+      Keep `offers` in step with server/src/seed/data/plans.js.
+    -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "LocalSchema AI",
+        "applicationCategory": "BusinessApplication",
+        "applicationSubCategory": "SEO Software",
+        "operatingSystem": "Web",
+        "url": "https://ai-local-business-schema-generato-client.onrender.com/",
+        "description": "Generate validated Schema.org JSON-LD for your local business from your own documents and website. Scan for existing schema, fix what's broken, and copy install-ready markup.",
+        "image": "https://ai-local-business-schema-generato-client.onrender.com/og-banner.png",
+        "inLanguage": "en",
+        "featureList": [
+          "Generate JSON-LD from business documents",
+          "Scan a website for existing structured data",
+          "Schema.org validation with actionable errors",
+          "Local SEO keyword research",
+          "Page content writing",
+          "Multi-location management"
+        ],
+        "offers": [
+          {
+            "@type": "Offer",
+            "name": "Free",
+            "price": "0",
+            "priceCurrency": "USD",
+            "category": "free"
+          },
+          {
+            "@type": "Offer",
+            "name": "Pro",
+            "price": "29",
+            "priceCurrency": "USD",
+            "category": "subscription"
+          },
+          {
+            "@type": "Offer",
+            "name": "Agency",
+            "price": "99",
+            "priceCurrency": "USD",
+            "category": "subscription"
+          }
+        ]
+      }
+    </script>
     <script>
       // Apply the saved theme before first paint so dark users don't get a
       // white flash while React boots. ThemeContext owns it from then on.

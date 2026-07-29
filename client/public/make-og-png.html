@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Generate og-banner.png</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        gap: 20px;
+        background: #0b1220;
+        color: #e6f6f3;
+        font: 15px/1.6 Inter, Segoe UI, Helvetica, Arial, sans-serif;
+        padding: 32px;
+      }
+      img { max-width: min(900px, 90vw); border-radius: 10px; box-shadow: 0 12px 40px #0008; }
+      button {
+        background: #0b7c74; color: #fff; border: 0; border-radius: 9px;
+        padding: 12px 22px; font-size: 15px; font-weight: 600; cursor: pointer;
+      }
+      button:hover { background: #14b8a6; }
+      p { max-width: 640px; text-align: center; opacity: .8; margin: 0; }
+      code { background: #ffffff14; padding: 2px 6px; border-radius: 4px; }
+    </style>
+  </head>
+  <body>
+    <!--
+      One-off tool: rasterises og-banner.svg to a 1200x630 PNG entirely in the
+      browser. Social scrapers (Facebook, LinkedIn, Twitter) will not accept an
+      SVG for og:image, and this avoids adding a native image dependency
+      (sharp/resvg) to the project just to produce one static file.
+
+      Open this page, click the button, then move the downloaded file into
+      client/public/og-banner.png. Delete this file afterwards if you like.
+    -->
+    <img id="preview" src="/og-banner.svg" width="1200" height="630" alt="Banner preview" />
+    <button id="save">Download og-banner.png (1200×630)</button>
+    <p>
+      Save the download into <code>client/public/og-banner.png</code>, then redeploy.
+      That is the file the Open Graph tags in <code>index.html</code> point at.
+    </p>
+
+    <script>
+      document.getElementById('save').addEventListener('click', async () => {
+        const source = await fetch('/og-banner.svg').then((r) => r.text());
+        // Inline the SVG as a blob URL so the canvas stays untainted and
+        // toBlob() is allowed to read the pixels back out.
+        const url = URL.createObjectURL(new Blob([source], { type: 'image/svg+xml' }));
+
+        const image = new Image();
+        image.onload = () => {
+          const canvas = Object.assign(document.createElement('canvas'), {
+            width: 1200,
+            height: 630,
+          });
+          canvas.getContext('2d').drawImage(image, 0, 0, 1200, 630);
+          URL.revokeObjectURL(url);
+
+          canvas.toBlob((blob) => {
+            const link = Object.assign(document.createElement('a'), {
+              href: URL.createObjectURL(blob),
+              download: 'og-banner.png',
+            });
+            link.click();
+            URL.revokeObjectURL(link.href);
+          }, 'image/png');
+        };
+        image.onerror = () => alert('Could not load /og-banner.svg — is the dev server running?');
+        image.src = url;
+      });
+    </script>
+  </body>
+</html>

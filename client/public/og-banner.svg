@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="LocalSchema AI — validated JSON-LD for local businesses">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#04413F"/>
+      <stop offset="55%" stop-color="#05524F"/>
+      <stop offset="100%" stop-color="#076E67"/>
+    </linearGradient>
+    <linearGradient id="rule" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#14B8A6"/>
+      <stop offset="100%" stop-color="#14B8A6" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Faint grid, evoking structured data without competing with the type -->
+  <g stroke="#7FE9DD" stroke-opacity="0.07" stroke-width="1">
+    <path d="M0 90h1200M0 180h1200M0 270h1200M0 360h1200M0 450h1200M0 540h1200"/>
+    <path d="M100 0v630M250 0v630M400 0v630M800 0v630M950 0v630M1100 0v630"/>
+  </g>
+
+  <!-- Mark -->
+  <g transform="translate(96 92)">
+    <rect width="96" height="96" rx="22" fill="#0B7C74"/>
+    <g transform="translate(21 21) scale(2.25)"
+       fill="none" stroke="#F0FDFA" stroke-width="2.25"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
+      <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+      <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+      <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+      <circle cx="12" cy="12" r="3.25"/>
+      <path d="m16.4 16.4-2.1-2.1"/>
+    </g>
+  </g>
+
+  <text x="216" y="158" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="46" font-weight="700" fill="#FFFFFF" letter-spacing="-0.5">LocalSchema AI</text>
+
+  <rect x="96" y="238" width="420" height="3" rx="1.5" fill="url(#rule)"/>
+
+  <text x="96" y="330" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="66" font-weight="700" fill="#FFFFFF" letter-spacing="-1.5">Schema that search</text>
+  <text x="96" y="404" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="66" font-weight="700" fill="#5EEAD4" letter-spacing="-1.5">engines can read.</text>
+
+  <text x="96" y="470" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="27" fill="#B6EFE8">Validated JSON-LD for local businesses — generated from your own</text>
+  <text x="96" y="508" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif"
+        font-size="27" fill="#B6EFE8">documents and website. Never invented, always verified.</text>
+
+  <!-- Trust row -->
+  <g font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="21" fill="#8FDDD4">
+    <g transform="translate(96 566)">
+      <circle cx="9" cy="-7" r="4.5" fill="#5EEAD4"/>
+      <text x="26" y="0">Schema.org validated</text>
+    </g>
+    <g transform="translate(398 566)">
+      <circle cx="9" cy="-7" r="4.5" fill="#5EEAD4"/>
+      <text x="26" y="0">Google rich-result ready</text>
+    </g>
+    <g transform="translate(738 566)">
+      <circle cx="9" cy="-7" r="4.5" fill="#5EEAD4"/>
+      <text x="26" y="0">Copy &amp; paste install</text>
+    </g>
+  </g>
+</svg>

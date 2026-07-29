@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="LocalSchema AI">
+  <!-- Brand mark: the same ScanSearch glyph used by <Logo />, on the deep-teal
+       primary (#05524F). Solid tile so it stays legible against both light and
+       dark browser chrome. Stroke width is bumped for 16px legibility. -->
+  <rect width="64" height="64" rx="14" fill="#05524F"/>
+  <g transform="translate(14 14) scale(1.5)"
+     fill="none" stroke="#F0FDFA" stroke-width="2.25"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
+    <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+    <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+    <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+    <circle cx="12" cy="12" r="3.25"/>
+    <path d="m16.4 16.4-2.1-2.1"/>
+  </g>
+</svg>

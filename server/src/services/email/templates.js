@@ -72,6 +72,46 @@ If you didn't request this, ignore this email — your password has not changed.
   };
 }
 
+/**
+ * Sent to a buyer the moment the store provisions their account. Carries their
+ * password, so it is the one message that must never be logged or re-sent from
+ * stored data — the app keeps only a bcrypt hash.
+ */
+export function welcomeCredentialsEmail({ name, email, password, loginUrl }) {
+  const greeting = name ? `Hi ${name},` : 'Hi,';
+
+  return {
+    subject: `Your ${APP_NAME} account is ready`,
+    html: layout({
+      heading: `Welcome to ${APP_NAME}`,
+      bodyHtml: `
+        <p style="margin:0 0 12px;font-size:15px;color:#334155;line-height:1.6;">${escapeHtml(greeting)}</p>
+        <p style="margin:0 0 20px;font-size:15px;color:#334155;line-height:1.6;">
+          Your account is set up and ready. Sign in with the details below.
+        </p>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:14px;color:#0f172a;">
+          <div style="margin-bottom:8px;"><span style="color:#64748b;">Email</span><br />
+            <strong>${escapeHtml(email)}</strong></div>
+          <div><span style="color:#64748b;">Password</span><br />
+            <strong style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;letter-spacing:0.5px;">${escapeHtml(password)}</strong></div>
+        </div>
+        <p style="margin:20px 0 0;font-size:14px;color:#475569;line-height:1.6;">
+          We recommend changing this password after your first sign-in.
+        </p>`,
+      cta: { url: loginUrl, label: 'Sign in' },
+    }),
+    text: `${greeting}
+
+Your ${APP_NAME} account is ready.
+
+Sign in: ${loginUrl}
+Email:    ${email}
+Password: ${password}
+
+We recommend changing this password after your first sign-in.`,
+  };
+}
+
 export function teamInviteEmail({ inviterName, workspaceName, role, joinUrl }) {
   const who = inviterName ? escapeHtml(inviterName) : 'A workspace owner';
   const where = workspaceName ? escapeHtml(workspaceName) : 'their workspace';
@@ -94,4 +134,4 @@ ${joinUrl}`,
   };
 }
 
-export default { passwordResetEmail, teamInviteEmail };
+export default { passwordResetEmail, welcomeCredentialsEmail, teamInviteEmail };

@@ -2,7 +2,10 @@ import crypto from 'node:crypto';
 
 import { APP_ID, WORKSPACE_ROLES, WORKSPACE_STATUS } from '../config/constants.js';
 import { env } from '../config/env.js';
+import logger from '../config/logger.js';
 import { Workspace } from '../models/index.js';
+import { sendEmail } from '../services/email/emailClient.js';
+import { welcomeCredentialsEmail } from '../services/email/templates.js';
 import { createInvite, createOwnerActivation } from '../services/workspace/membershipService.js';
 import {
   createOwnerWithPassword,
@@ -100,9 +103,14 @@ export const manifest = asyncHandler(async (_req, res) =>
 );
 
 /**
- * The hub creates a buyer here. We generate the owner's workspace + a one-time
- * join link, and return the link so the hub can send it to the buyer. The owner
- * user is created when they accept (they choose their own password then).
+ * The hub creates a buyer here.
+ *
+ * DEFAULT: a ready-to-use OWNER ACCOUNT. Workspace, user and owner membership
+ * are all created, and the password is generated here if the store didn't send
+ * one — so a bare `{ ownerEmail }` call still yields someone who can log in.
+ *
+ * The join-link flow (workspace now, user later when they click) is the opposite
+ * of what a paying customer wants, so it is opt-in only: `method: 'link'`.
  */
 export const provision = asyncHandler(async (req, res) => {
   const { ownerName, ownerEmail, activationCode, password } = req.body;
@@ -127,37 +135,21 @@ export const provision = asyncHandler(async (req, res) => {
     });
   }
 
-  // Preferred path: the hub generated the password, so the owner account is
-  // created here and ready. The hub emails the buyer their email + password and
-  // they sign in on the normal login page — no activation step.
-  if (password) {
-    await createOwnerWithPassword({ workspaceId, ownerEmail, ownerName, password });
+  // Explicit opt-in only: workspace now, user created when they click the link.
+  if (req.body.method === 'link') {
+    const { token } = await createInvite({
+      workspaceId,
+      email: ownerEmail,
+      role: WORKSPACE_ROLES.OWNER,
+      invitedBy: null,
+    });
     return sendCreated(res, {
       message: 'Workspace provisioned.',
-      data: { workspaceId, method: 'password', loginUrl: `${clientUrl()}/login` },
+      data: { workspaceId, method: 'link', joinUrl: `${clientUrl()}/join/${token}` },
     });
   }
 
-  // Same outcome, for stores that cannot generate a password themselves: WE
-  // generate it and return it once. The hub only has to relay it to the buyer.
-  // `temporaryPassword` is in the response body and nowhere else — it is never
-  // logged and cannot be read back, since only the bcrypt hash is stored.
-  if (req.body.generatePassword) {
-    const generated = generatePassword();
-    await createOwnerWithPassword({ workspaceId, ownerEmail, ownerName, password: generated });
-    return sendCreated(res, {
-      message: 'Workspace provisioned.',
-      data: {
-        workspaceId,
-        method: 'password',
-        loginUrl: `${clientUrl()}/login`,
-        temporaryPassword: generated,
-      },
-    });
-  }
-
-  // If the hub sent a 6–7 digit activation code, the owner redeems it with
-  // their email at /activate. Otherwise fall back to a one-time join link.
+  // Owner redeems a short code with their email and picks their own password.
   if (activationCode) {
     await createOwnerActivation({ workspaceId, ownerEmail, code: String(activationCode) });
     return sendCreated(res, {
@@ -166,33 +158,95 @@ export const provision = asyncHandler(async (req, res) => {
     });
   }
 
-  const { token } = await createInvite({
-    workspaceId,
-    email: ownerEmail,
-    role: WORKSPACE_ROLES.OWNER,
-    invitedBy: null,
-  });
+  // DEFAULT — a live owner account. Uses the store's password when supplied,
+  // otherwise generates one. `temporaryPassword` is returned only when we made
+  // it: if the store chose the password it already knows it, and echoing a
+  // caller-supplied secret back serves no purpose.
+  {
+    const generated = password || generatePassword();
+    await createOwnerWithPassword({ workspaceId, ownerEmail, ownerName, password: generated });
 
-  return sendCreated(res, {
-    message: 'Workspace provisioned.',
-    data: { workspaceId, method: 'link', joinUrl: `${clientUrl()}/join/${token}` },
-  });
+    const loginUrl = `${clientUrl()}/login`;
+
+    // Optionally let THIS app deliver the credentials, so the store never has to
+    // handle a password at all. Deliberately not fatal: the account already
+    // exists, so a mail failure must still return the password for the store to
+    // fall back on rather than 500 after taking the customer's money.
+    let emailed = false;
+    if (req.body.sendWelcomeEmail) {
+      try {
+        const message = welcomeCredentialsEmail({
+          name: ownerName,
+          email: ownerEmail,
+          password: generated,
+          loginUrl,
+        });
+        const result = await sendEmail({
+          to: ownerEmail,
+          replyTo: env.EMAIL_REPLY_TO,
+          ...message,
+        });
+        emailed = Boolean(result.sent);
+      } catch (error) {
+        logger.error('Provisioned account but could not email credentials', {
+          workspaceId,
+          message: error.message,
+        });
+      }
+    }
+
+    return sendCreated(res, {
+      message: 'Workspace provisioned.',
+      data: {
+        workspaceId,
+        method: 'password',
+        loginUrl,
+        // Only when WE generated it — a store that chose the password already
+        // has it, and echoing back a caller-supplied secret serves no purpose.
+        ...(password ? {} : { temporaryPassword: generated }),
+        // False means the store MUST deliver the password itself.
+        emailed,
+      },
+    });
+  }
 });
 
+/**
+ * Flips a workspace's status.
+ *
+ * Confirms something was actually matched. Previously a missing or misspelled
+ * workspaceId returned 200 "suspended" while changing nothing — so a refund
+ * webhook would report success and the customer would keep their access.
+ */
+async function setStatus(req, status, verb) {
+  const { workspaceId } = req.body;
+
+  if (!workspaceId) {
+    throw ApiError.badRequest('workspaceId is required.', { code: 'VALIDATION_ERROR' });
+  }
+
+  const workspace = await Workspace.findOne({ appId: APP_ID, workspaceId });
+  if (!workspace) {
+    throw ApiError.notFound(`No workspace with id "${workspaceId}".`, {
+      code: 'WORKSPACE_NOT_FOUND',
+    });
+  }
+
+  workspace.status = status;
+  await workspace.save();
+  logger.info(`Workspace ${verb}`, { workspaceId });
+
+  return { workspaceId, status };
+}
+
 export const suspend = asyncHandler(async (req, res) => {
-  await Workspace.updateOne(
-    { workspaceId: req.body.workspaceId },
-    { status: WORKSPACE_STATUS.SUSPENDED },
-  );
-  return sendSuccess(res, { message: 'Workspace suspended.', data: {} });
+  const data = await setStatus(req, WORKSPACE_STATUS.SUSPENDED, 'suspended');
+  return sendSuccess(res, { message: 'Workspace suspended.', data });
 });
 
 export const reactivate = asyncHandler(async (req, res) => {
-  await Workspace.updateOne(
-    { workspaceId: req.body.workspaceId },
-    { status: WORKSPACE_STATUS.ACTIVE },
-  );
-  return sendSuccess(res, { message: 'Workspace reactivated.', data: {} });
+  const data = await setStatus(req, WORKSPACE_STATUS.ACTIVE, 'reactivated');
+  return sendSuccess(res, { message: 'Workspace reactivated.', data });
 });
 
 export default { requireHubSecret, manifest, provision, suspend, reactivate };

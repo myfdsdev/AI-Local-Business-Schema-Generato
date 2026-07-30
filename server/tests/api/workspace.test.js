@@ -3,6 +3,7 @@ import { after, before, beforeEach, describe, it } from 'node:test';
 
 import request from 'supertest';
 
+import { Workspace } from '../../src/models/index.js';
 import { authHeader, registerUser, seedPlans } from '../helpers/factories.js';
 import { clearDatabase, getApp, startTestServer, stopTestServer } from '../helpers/testServer.js';
 
@@ -290,6 +291,53 @@ describe('Workspace isolation', () => {
     assert.equal(blocked.status, 403);
   });
 
+  it('does not report success when suspending an unknown workspace', async () => {
+    // Regression: this used to return 200 "Workspace suspended." while changing
+    // nothing, so a refund webhook with a typo'd id left access wide open.
+    process.env.PLATFORM_SECRET = 'test-hub-secret';
+
+    const wrongId = await request(getApp())
+      .post('/api/v1/platform/suspend')
+      .set('x-platform-secret', 'test-hub-secret')
+      .send({ workspaceId: 'ws_does_not_exist' });
+    assert.equal(wrongId.status, 404);
+    assert.equal(wrongId.body.code, 'WORKSPACE_NOT_FOUND');
+
+    const missing = await request(getApp())
+      .post('/api/v1/platform/suspend')
+      .set('x-platform-secret', 'test-hub-secret')
+      .send({});
+    assert.equal(missing.status, 400);
+  });
+
+  it('creates a real owner account from a bare { ownerEmail } call', async () => {
+    // Regression: a store sending only an email used to get a join link and a
+    // workspace with ownerUserId: null — nobody could log in.
+    process.env.PLATFORM_SECRET = 'test-hub-secret';
+
+    const prov = await request(getApp())
+      .post('/api/v1/platform/provision')
+      .set('x-platform-secret', 'test-hub-secret')
+      .send({ workspaceId: 'ws_bare1', ownerEmail: 'bare@example.com' });
+
+    assert.equal(prov.status, 201);
+    assert.equal(prov.body.data.method, 'password', 'owner account, not a join link');
+    assert.ok(!prov.body.data.joinUrl, 'no join link is issued');
+
+    const generated = prov.body.data.temporaryPassword;
+    assert.ok(generated, 'a usable password came back');
+
+    // The workspace must have a real owner attached, not ownerUserId: null.
+    const workspace = await Workspace.findOne({ workspaceId: 'ws_bare1' }).lean();
+    assert.ok(workspace.ownerUserId, 'ownerUserId is populated');
+
+    // And the buyer can sign in immediately.
+    const login = await request(getApp())
+      .post('/api/v1/auth/login')
+      .send({ email: 'bare@example.com', password: generated });
+    assert.equal(login.status, 200);
+  });
+
   it('generates a password when the store cannot, and the buyer can log in with it', async () => {
     process.env.PLATFORM_SECRET = 'test-hub-secret';
 
@@ -361,9 +409,17 @@ describe('Workspace isolation', () => {
     const prov = await request(getApp())
       .post('/api/v1/platform/provision')
       .set('x-platform-secret', 'test-hub-secret')
-      .send({ workspaceId: 'ws_testA', ownerName: 'Buyer A', ownerEmail: 'buyerA@example.com' });
+      // The join-link flow is opt-in now that a live owner account is the
+      // default, so this test asks for it explicitly.
+      .send({
+        workspaceId: 'ws_testA',
+        ownerName: 'Buyer A',
+        ownerEmail: 'buyerA@example.com',
+        method: 'link',
+      });
     assert.equal(prov.status, 201);
     assert.equal(prov.body.data.workspaceId, 'ws_testA');
+    assert.equal(prov.body.data.method, 'link');
 
     const token = prov.body.data.joinUrl.split('/join/')[1];
     const join = await request(getApp())

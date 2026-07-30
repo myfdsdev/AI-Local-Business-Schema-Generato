@@ -1,3 +1,5 @@
+import crypto from 'node:crypto';
+
 import { APP_ID, WORKSPACE_ROLES, WORKSPACE_STATUS } from '../config/constants.js';
 import { env } from '../config/env.js';
 import { Workspace } from '../models/index.js';
@@ -14,6 +16,34 @@ import asyncHandler from '../utils/asyncHandler.js';
 const clientUrl = () => env.CLIENT_URL?.replace(/\/$/, '') ?? '';
 
 /**
+ * Generates a login password on the app's behalf, for stores that cannot make
+ * one themselves. Returned to the hub EXACTLY ONCE in the provision response
+ * and never recoverable afterwards — only a bcrypt hash is stored.
+ *
+ * Ambiguous characters (0/O, 1/l/I) are excluded because a human will read this
+ * out of an email and retype it. Always satisfies passwordSchema: 10+ chars with
+ * at least one letter and one number.
+ */
+function generatePassword() {
+  const LETTERS = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
+  const DIGITS = '23456789';
+  const SYMBOLS = '!@#$%*?';
+  const pool = LETTERS + DIGITS + SYMBOLS;
+
+  const pick = (set) => set[crypto.randomInt(0, set.length)];
+  // Seed one of each required class, then fill to length.
+  const chars = [pick(LETTERS), pick(DIGITS), pick(SYMBOLS)];
+  while (chars.length < 16) chars.push(pick(pool));
+
+  // Fisher-Yates so the seeded characters aren't always in the first positions.
+  for (let i = chars.length - 1; i > 0; i -= 1) {
+    const j = crypto.randomInt(0, i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join('');
+}
+
+/**
  * Guards the /platform/* endpoints: only the AppsFields hub, which holds the
  * shared secret, may call them. Length-safe comparison. Disabled entirely when
  * no secret is configured (this app then runs standalone).
@@ -28,6 +58,46 @@ export function requireHubSecret(req, _res, next) {
   }
   return next();
 }
+
+/**
+ * Discovery document. PUBLIC on purpose: the hub is given only a base URL, and
+ * fetches this to learn who the app is and which endpoints to call — so nobody
+ * has to type a path by hand, and a wrong URL is caught immediately.
+ *
+ * Contains no secrets and grants nothing: every endpoint it advertises is still
+ * gated by the shared secret. Keep this shape identical in every app so one
+ * hub-side reader works for all of them.
+ */
+export const manifest = asyncHandler(async (_req, res) =>
+  sendSuccess(res, {
+    message: 'OK',
+    data: {
+      appId: APP_ID,
+      name: 'LocalSchema AI',
+      description: 'AI-powered Schema.org JSON-LD generator for local businesses.',
+      apiVersion: 'v1',
+      // Version of the shared workspace contract, NOT of this app. Bump only if
+      // the provision request/response shape changes.
+      workspaceSystem: '1.0',
+      auth: { type: 'shared-secret', header: 'x-platform-secret' },
+      endpoints: {
+        provision: '/api/v1/platform/provision',
+        suspend: '/api/v1/platform/suspend',
+        reactivate: '/api/v1/platform/reactivate',
+      },
+      // Which onboarding styles this app accepts, best first. `generatePassword`
+      // is for stores that cannot produce a password themselves — the app makes
+      // one and returns it once for the store to relay.
+      provisionMethods: ['password', 'generatePassword', 'activationCode', 'link'],
+      // Where a provisioned buyer signs in. Lets the hub verify CLIENT_URL is
+      // configured before a real customer receives a broken link.
+      loginUrl: `${clientUrl()}/login`,
+      // False when PLATFORM_SECRET is unset — the bridge is disabled and every
+      // call would 401. Surfaces the most common setup mistake up front.
+      ready: Boolean(env.PLATFORM_SECRET || process.env.PLATFORM_SECRET),
+    },
+  }),
+);
 
 /**
  * The hub creates a buyer here. We generate the owner's workspace + a one-time
@@ -65,6 +135,24 @@ export const provision = asyncHandler(async (req, res) => {
     return sendCreated(res, {
       message: 'Workspace provisioned.',
       data: { workspaceId, method: 'password', loginUrl: `${clientUrl()}/login` },
+    });
+  }
+
+  // Same outcome, for stores that cannot generate a password themselves: WE
+  // generate it and return it once. The hub only has to relay it to the buyer.
+  // `temporaryPassword` is in the response body and nowhere else — it is never
+  // logged and cannot be read back, since only the bcrypt hash is stored.
+  if (req.body.generatePassword) {
+    const generated = generatePassword();
+    await createOwnerWithPassword({ workspaceId, ownerEmail, ownerName, password: generated });
+    return sendCreated(res, {
+      message: 'Workspace provisioned.',
+      data: {
+        workspaceId,
+        method: 'password',
+        loginUrl: `${clientUrl()}/login`,
+        temporaryPassword: generated,
+      },
     });
   }
 
@@ -107,4 +195,4 @@ export const reactivate = asyncHandler(async (req, res) => {
   return sendSuccess(res, { message: 'Workspace reactivated.', data: {} });
 });
 
-export default { requireHubSecret, provision, suspend, reactivate };
+export default { requireHubSecret, manifest, provision, suspend, reactivate };

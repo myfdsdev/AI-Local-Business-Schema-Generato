@@ -231,6 +231,32 @@ describe('Workspace isolation', () => {
     assert.equal(ctx.body.data.role, 'owner');
   });
 
+  it('publishes a discovery manifest without needing the secret', async () => {
+    delete process.env.PLATFORM_SECRET;
+
+    const res = await request(getApp()).get('/api/v1/platform/manifest');
+
+    // Readable with no credentials — the hub has only a base URL at this point.
+    assert.equal(res.status, 200);
+    assert.equal(res.body.data.appId, 'localschema');
+    assert.equal(res.body.data.auth.header, 'x-platform-secret');
+    assert.equal(res.body.data.endpoints.provision, '/api/v1/platform/provision');
+    // Flags the commonest setup mistake before a real customer hits it.
+    assert.equal(res.body.data.ready, false);
+
+    // The manifest must not weaken the guard on the real endpoints.
+    const provision = await request(getApp())
+      .post('/api/v1/platform/provision')
+      .send({ ownerEmail: 'nope@example.com' });
+    assert.equal(provision.status, 401);
+  });
+
+  it('reports ready:true once the secret is configured', async () => {
+    process.env.PLATFORM_SECRET = 'test-hub-secret';
+    const res = await request(getApp()).get('/api/v1/platform/manifest');
+    assert.equal(res.body.data.ready, true);
+  });
+
   it('an owner can rename their workspace; a member cannot', async () => {
     const owner = await makeOwnerWithProject();
     const app = getApp();
@@ -262,6 +288,41 @@ describe('Workspace isolation', () => {
       .set(authHeader(memberToken))
       .send({ name: 'Hijacked' });
     assert.equal(blocked.status, 403);
+  });
+
+  it('generates a password when the store cannot, and the buyer can log in with it', async () => {
+    process.env.PLATFORM_SECRET = 'test-hub-secret';
+
+    const prov = await request(getApp())
+      .post('/api/v1/platform/provision')
+      .set('x-platform-secret', 'test-hub-secret')
+      .send({
+        workspaceId: 'ws_gen1',
+        ownerName: 'No-Password Store',
+        ownerEmail: 'genbuyer@example.com',
+        generatePassword: true,
+      });
+
+    assert.equal(prov.status, 201);
+    assert.equal(prov.body.data.method, 'password');
+
+    const generated = prov.body.data.temporaryPassword;
+    assert.ok(generated, 'a password was returned');
+    assert.ok(generated.length >= 10, 'meets the 10-char policy');
+    assert.ok(/[a-zA-Z]/.test(generated) && /[0-9]/.test(generated), 'has a letter and a digit');
+
+    // The returned password must actually work on the normal login page.
+    const login = await request(getApp())
+      .post('/api/v1/auth/login')
+      .send({ email: 'genbuyer@example.com', password: generated });
+    assert.equal(login.status, 200);
+
+    // And they own the workspace the store named.
+    const ctx = await request(getApp())
+      .get('/api/v1/workspace')
+      .set(authHeader(login.body.data.accessToken));
+    assert.equal(ctx.body.data.workspaceId, 'ws_gen1');
+    assert.equal(ctx.body.data.role, 'owner');
   });
 
   it('hub provisions with a code → owner activates with email + code', async () => {

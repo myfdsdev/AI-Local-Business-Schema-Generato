@@ -1,5 +1,6 @@
 import { env } from '../config/env.js';
 import * as authService from '../services/auth/authService.js';
+import * as passwordReset from '../services/auth/passwordResetService.js';
 import ApiError from '../utils/ApiError.js';
 import {
   clearRefreshCookie,
@@ -92,6 +93,39 @@ export const logout = asyncHandler(async (req, res) => {
   return sendSuccess(res, { message: 'Signed out.', data: {} });
 });
 
+/**
+ * Starts a password reset.
+ *
+ * Returns the SAME response whether or not the address has an account. Any
+ * difference — message, status, even timing — lets someone enumerate customers.
+ */
+export const forgotPassword = asyncHandler(async (req, res) => {
+  await passwordReset.requestPasswordReset({ email: req.body.email, ip: req.ip });
+
+  return sendSuccess(res, {
+    message: 'If that email has an account, a reset link is on its way.',
+    data: {},
+  });
+});
+
+/** Completes a reset and clears the session so they sign in with the new one. */
+export const resetPassword = asyncHandler(async (req, res) => {
+  const { user } = await passwordReset.resetPassword({
+    token: req.body.token,
+    password: req.body.password,
+  });
+
+  // Every refresh token was just invalidated; drop the cookie too so the client
+  // isn't holding one that will only fail.
+  clearRefreshCookie(res);
+  await recordAudit({ userId: user._id, action: AUDIT_ACTIONS.PASSWORD_RESET, req });
+
+  return sendSuccess(res, {
+    message: 'Your password has been changed. You can sign in now.',
+    data: {},
+  });
+});
+
 export const me = asyncHandler(async (req, res) =>
   sendSuccess(res, { message: 'OK', data: { user: presentUser(req.user) } }),
 );
@@ -122,6 +156,8 @@ export const deleteAccount = asyncHandler(async (req, res) => {
 });
 
 export default {
+  forgotPassword,
+  resetPassword,
   register,
   login,
   refresh,

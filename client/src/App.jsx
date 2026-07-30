@@ -8,6 +8,8 @@ import LandingPage from '@/pages/marketing/LandingPage';
 import PricingPage from '@/pages/marketing/PricingPage';
 import LoginPage from '@/pages/auth/LoginPage';
 import RegisterPage from '@/pages/auth/RegisterPage';
+import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 import JoinPage from '@/pages/auth/JoinPage';
 import ActivatePage from '@/pages/auth/ActivatePage';
 import OnboardingPage from '@/pages/onboarding/OnboardingPage';
@@ -42,8 +44,11 @@ export default function App() {
         <Route element={<PublicOnlyRoute />}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         </Route>
-        {/* Reachable whether or not signed in */}
+        {/* Reachable whether or not signed in: someone with a live session may
+            still be following a reset link from their inbox. */}
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
       </Route>
 
       {/* Onboarding sits outside the app shell */}

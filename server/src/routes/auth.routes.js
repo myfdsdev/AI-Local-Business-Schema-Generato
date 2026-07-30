@@ -6,9 +6,11 @@ import { authLimiter } from '../middleware/rateLimit.js';
 import { validate } from '../middleware/validate.js';
 import {
   deleteAccountSchema,
+  forgotPasswordSchema,
   loginSchema,
   onboardingSchema,
   registerSchema,
+  resetPasswordSchema,
   updateProfileSchema,
 } from '../validators/auth.validators.js';
 
@@ -19,6 +21,21 @@ router.post('/register', authLimiter, validate({ body: registerSchema }), authCo
 router.post('/login', authLimiter, validate({ body: loginSchema }), authController.login);
 router.post('/refresh', authController.refresh);
 router.post('/logout', optionalAuthenticate, authController.logout);
+
+// Password recovery. authLimiter is essential on both: the first would otherwise
+// be an email-bombing tool, and the second a way to brute-force reset tokens.
+router.post(
+  '/forgot-password',
+  authLimiter,
+  validate({ body: forgotPasswordSchema }),
+  authController.forgotPassword,
+);
+router.post(
+  '/reset-password',
+  authLimiter,
+  validate({ body: resetPasswordSchema }),
+  authController.resetPassword,
+);
 
 // --- Authenticated ----------------------------------------------------------
 router.get('/me', authenticate, authController.me);

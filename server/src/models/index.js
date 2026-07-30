@@ -3,6 +3,7 @@ export { BusinessData } from './BusinessData.js';
 export { BusinessProject } from './BusinessProject.js';
 export { CreditTransaction } from './CreditTransaction.js';
 export { Location } from './Location.js';
+export { PasswordResetToken } from './PasswordResetToken.js';
 export { Plan } from './Plan.js';
 export { SchemaDocument } from './SchemaDocument.js';
 export { SchemaType } from './SchemaType.js';

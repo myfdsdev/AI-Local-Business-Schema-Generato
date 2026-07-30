@@ -27,6 +27,15 @@ export const emailSchema = z
   .email('Enter a valid email address.')
   .max(254);
 
+export const forgotPasswordSchema = z.object({
+  email: emailSchema,
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().trim().min(10, 'This reset link is incomplete.').max(200),
+  password: passwordSchema,
+});
+
 export const registerSchema = z.object({
   name: z.string().trim().min(2, 'Enter your full name.').max(120),
   email: emailSchema,

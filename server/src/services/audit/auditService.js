@@ -7,6 +7,7 @@ export const AUDIT_ACTIONS = Object.freeze({
   USER_LOGGED_OUT: 'user.logged_out',
   USER_PROFILE_UPDATED: 'user.profile_updated',
   USER_ACCOUNT_DELETED: 'user.account_deleted',
+  PASSWORD_RESET: 'user.password_reset',
 
   PROJECT_CREATED: 'project.created',
   PROJECT_UPDATED: 'project.updated',

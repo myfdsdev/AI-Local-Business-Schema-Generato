@@ -55,6 +55,18 @@ const baseSchema = z.object({
   OPENROUTER_API_KEY: z.string().optional(),
   OPENROUTER_MODEL: z.string().default('openai/gpt-4o-mini'),
 
+  // Product name used in email subjects and templates.
+  APP_NAME: z.string().default('LocalSchema AI'),
+
+  // Transactional email. 'none' disables sending: password-reset requests still
+  // succeed (so they cannot be used to probe for accounts) but no mail goes out,
+  // and in development the link is logged instead.
+  EMAIL_PROVIDER: z.enum(['none', 'resend']).default('none'),
+  RESEND_API_KEY: z.string().optional(),
+  // Must be on a domain verified with the provider, e.g. "Support <hi@yourdomain.com>".
+  EMAIL_FROM: z.string().optional(),
+  EMAIL_REPLY_TO: z.string().optional(),
+
   ADMIN_EMAIL: z.string().email().optional(),
   ADMIN_PASSWORD: z.string().optional(),
   DEMO_USER_EMAIL: z.string().email().optional(),

@@ -48,6 +48,22 @@ const PROVIDERS = {
         const providerMessage = error.response?.data?.message;
         logger.error('Resend request failed', { status, message: error.message, providerMessage });
 
+        // Resend returns 403 for BOTH a bad key and an unverified sending
+        // domain. Distinguish them: blaming the key when the key is fine sends
+        // you regenerating credentials that were never the problem.
+        const domainProblem = /domain is not verified|not verified/i.test(providerMessage ?? '');
+
+        if (domainProblem) {
+          throw new ApiError(502, 'The sending domain is not verified with the email provider.', {
+            code: 'EMAIL_DOMAIN_UNVERIFIED',
+            errors: [
+              {
+                field: 'EMAIL_FROM',
+                message: `${providerMessage} The key is fine — only the domain needs verifying.`,
+              },
+            ],
+          });
+        }
         if (status === 401 || status === 403) {
           throw new ApiError(502, 'The email service rejected our credentials.', {
             code: 'EMAIL_AUTH_FAILED',
@@ -55,7 +71,8 @@ const PROVIDERS = {
           });
         }
         if (status === 422) {
-          // Almost always an unverified sending domain or a malformed address.
+          // A malformed address, or sending to a non-account address while still
+          // on the provider's test sender.
           throw new ApiError(502, 'The email service rejected this message.', {
             code: 'EMAIL_REJECTED',
             errors: providerMessage ? [{ field: 'EMAIL_FROM', message: providerMessage }] : [],

@@ -121,10 +121,32 @@ export const manifest = asyncHandler(async (_req, res) =>
  */
 export const provision = asyncHandler(async (req, res) => {
   const { ownerName, ownerEmail, activationCode, password } = req.body;
-  const workspaceId = req.body.workspaceId || generateWorkspaceId();
 
   if (!ownerEmail) {
     throw ApiError.badRequest('ownerEmail is required.', { code: 'VALIDATION_ERROR' });
+  }
+
+  const normalizedEmail = ownerEmail.toLowerCase().trim();
+
+  /*
+   * Resolving the workspace id, in priority order:
+   *
+   * 1. What the store sent — it owns the mapping, so honour it.
+   * 2. An existing workspace for this owner email — makes the call IDEMPOTENT
+   *    even when the store sends no id. Payment webhooks retry, and without this
+   *    each retry minted a second workspace for the same buyer, leaving their
+   *    membership lookup ambiguous.
+   * 3. A fresh random id for a genuinely new buyer.
+   */
+  let workspaceId = req.body.workspaceId;
+  if (!workspaceId) {
+    const existingForOwner = await Workspace.findOne({
+      appId: APP_ID,
+      ownerEmail: normalizedEmail,
+    })
+      .select('workspaceId')
+      .lean();
+    workspaceId = existingForOwner?.workspaceId ?? generateWorkspaceId();
   }
 
   const existing = await Workspace.findOne({ workspaceId });
@@ -137,7 +159,7 @@ export const provision = asyncHandler(async (req, res) => {
       appId: APP_ID,
       workspaceId,
       name: ownerName ?? '',
-      ownerEmail: ownerEmail.toLowerCase().trim(),
+      ownerEmail: normalizedEmail,
       status: WORKSPACE_STATUS.ACTIVE,
     });
   }

@@ -291,6 +291,36 @@ describe('Workspace isolation', () => {
     assert.equal(blocked.status, 403);
   });
 
+  it('is idempotent by owner email when no workspaceId is sent', async () => {
+    // Regression: a retried payment webhook with no workspaceId used to mint a
+    // second workspace for the same buyer, leaving membership lookup ambiguous.
+    process.env.PLATFORM_SECRET = 'test-hub-secret';
+    const app = getApp();
+    const body = { ownerName: 'Retry Buyer', ownerEmail: 'retry@example.com' };
+
+    const first = await request(app)
+      .post('/api/v1/platform/provision')
+      .set('x-platform-secret', 'test-hub-secret')
+      .send(body);
+    assert.equal(first.status, 201);
+
+    const second = await request(app)
+      .post('/api/v1/platform/provision')
+      .set('x-platform-secret', 'test-hub-secret')
+      .send(body);
+    assert.equal(second.status, 201);
+
+    // Same workspace both times, and only one exists.
+    assert.equal(second.body.data.workspaceId, first.body.data.workspaceId);
+    assert.equal(await Workspace.countDocuments({ ownerEmail: 'retry@example.com' }), 1);
+
+    // The retry reset the password, so the newest one is the live one.
+    const login = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: 'retry@example.com', password: second.body.data.temporaryPassword });
+    assert.equal(login.status, 200);
+  });
+
   it('attempts the welcome email by default, and can be told not to', async () => {
     process.env.PLATFORM_SECRET = 'test-hub-secret';
     const app = getApp();

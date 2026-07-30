@@ -291,6 +291,34 @@ describe('Workspace isolation', () => {
     assert.equal(blocked.status, 403);
   });
 
+  it('attempts the welcome email by default, and can be told not to', async () => {
+    process.env.PLATFORM_SECRET = 'test-hub-secret';
+    const app = getApp();
+
+    // The suite sends no real mail, so `emailed` is false either way — what is
+    // asserted here is that the flag is DEFAULT-ON and genuinely switchable,
+    // guarding against a `if (flag)` check that could never be turned off.
+    const byDefault = await request(app)
+      .post('/api/v1/platform/provision')
+      .set('x-platform-secret', 'test-hub-secret')
+      .send({ workspaceId: 'ws_mail1', ownerEmail: 'mail1@example.com' });
+    assert.equal(byDefault.status, 201);
+    assert.ok('emailed' in byDefault.body.data, 'the response reports delivery state');
+
+    const optedOut = await request(app)
+      .post('/api/v1/platform/provision')
+      .set('x-platform-secret', 'test-hub-secret')
+      .send({
+        workspaceId: 'ws_mail2',
+        ownerEmail: 'mail2@example.com',
+        sendWelcomeEmail: false,
+      });
+    assert.equal(optedOut.status, 201);
+    assert.equal(optedOut.body.data.emailed, false);
+    // The password still comes back so the store can deliver it itself.
+    assert.ok(optedOut.body.data.temporaryPassword);
+  });
+
   it('does not report success when suspending an unknown workspace', async () => {
     // Regression: this used to return 200 "Workspace suspended." while changing
     // nothing, so a refund webhook with a typo'd id left access wide open.

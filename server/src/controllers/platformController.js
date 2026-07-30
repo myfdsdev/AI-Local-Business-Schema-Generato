@@ -88,10 +88,17 @@ export const manifest = asyncHandler(async (_req, res) =>
         suspend: '/api/v1/platform/suspend',
         reactivate: '/api/v1/platform/reactivate',
       },
-      // Which onboarding styles this app accepts, best first. `generatePassword`
-      // is for stores that cannot produce a password themselves — the app makes
-      // one and returns it once for the store to relay.
-      provisionMethods: ['password', 'generatePassword', 'activationCode', 'link'],
+      // Onboarding styles this app accepts, best first. The default needs no
+      // fields beyond ownerEmail: the app generates the password and emails the
+      // credentials itself.
+      provisionMethods: ['password', 'activationCode', 'link'],
+      defaults: {
+        // A bare { ownerEmail } yields a ready-to-use owner account.
+        method: 'password',
+        generatesPassword: true,
+        // Sends the credentials unless sendWelcomeEmail:false is passed.
+        sendsWelcomeEmail: true,
+      },
       // Where a provisioned buyer signs in. Lets the hub verify CLIENT_URL is
       // configured before a real customer receives a broken link.
       loginUrl: `${clientUrl()}/login`,
@@ -168,12 +175,17 @@ export const provision = asyncHandler(async (req, res) => {
 
     const loginUrl = `${clientUrl()}/login`;
 
-    // Optionally let THIS app deliver the credentials, so the store never has to
-    // handle a password at all. Deliberately not fatal: the account already
-    // exists, so a mail failure must still return the password for the store to
-    // fall back on rather than 500 after taking the customer's money.
+    // ON BY DEFAULT: the app delivers the credentials so the store never has to
+    // handle a password. `!== false` rather than a truthy check, so it can
+    // actually be turned off — a flag that can only ever be enabled is a trap.
+    //
+    // Deliberately not fatal: the account already exists, so a mail failure must
+    // still return the password for the store to fall back on rather than 500
+    // after the customer has paid.
+    const shouldEmail = req.body.sendWelcomeEmail !== false;
+
     let emailed = false;
-    if (req.body.sendWelcomeEmail) {
+    if (shouldEmail) {
       try {
         const message = welcomeCredentialsEmail({
           name: ownerName,

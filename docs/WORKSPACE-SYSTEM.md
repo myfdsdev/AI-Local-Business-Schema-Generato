@@ -1,133 +1,100 @@
-# The Workspace System — Reference for Every App You Build
+# Portable Prompt — Workspaces, Store Bridge, Email & BYO LLM Keys
 
-This is the shared foundation across your whole app suite. Build it once, copy it
-into each new app, change two placeholders. Everything here is running and
-verified in LocalSchema AI — it is not a proposal.
+Paste this whole file as a prompt when building any app in the suite. Replace two
+placeholders; everything else is identical across every app.
 
-| Placeholder | Meaning | This app |
+Every behaviour here is **running in production** in LocalSchema AI and covered
+by 119 passing tests. It is not a proposal.
+
+| Placeholder | Meaning | Example |
 |---|---|---|
 | `<APP_ID>` | Short slug for THIS app | `localschema` |
-| `<TENANT_MODELS>` | Models holding customer data | `BusinessProject`, `Location`, `WebsiteScan` |
+| `<TENANT_MODELS>` | Models holding customer data | `Project`, `Location` |
 
 ---
 
-## The four pillars
+## PROMPT STARTS HERE
 
-1. **Workspaces** — one paying customer = one isolated tenant
-2. **Store bridge** — your Base44 store creates accounts automatically on purchase
-3. **BYO LLM keys** — each customer can supply their own AI provider key
-4. **Roles** — owner / admin / member inside each workspace
+Implement four systems that must behave **identically in every app I own**:
+workspace multi-tenancy, a server-to-server store bridge, transactional email,
+and per-workspace LLM keys. These are security boundaries — follow the spec, do
+not simplify it.
+
+Stack: Node + Express + Mongoose, React + React Query. Adapt idioms if the stack
+differs; never weaken a rule.
 
 ---
 
-## 1. WORKSPACES
+# PART A — WORKSPACES
 
-### The idea
+A **workspace** is one paying customer's isolated tenant. Every customer-owned
+record carries `workspaceId`; every query filters by it. Users join through a
+**membership record**, never a field on the user.
 
-A **workspace** is one customer's isolated world. Every customer-owned record
-carries a `workspaceId`, and every query filters by it. Users join a workspace
-through a **membership record** — never a field on the user.
-
-### Constants
+## Constants
 
 ```js
 export const APP_ID = '<APP_ID>';
-
 export const WORKSPACE_ROLES   = { OWNER: 'owner', ADMIN: 'admin', MEMBER: 'member' };
 export const WORKSPACE_STATUS  = { ACTIVE: 'active', SUSPENDED: 'suspended', CANCELLED: 'cancelled' };
 export const MEMBER_STATUS     = { ACTIVE: 'active', INVITED: 'invited', REVOKED: 'revoked' };
-export const INVITATION_STATUS = { PENDING: 'pending', ACCEPTED: 'accepted', EXPIRED: 'expired', REVOKED: 'revoked' };
 ```
 
-Two separate role axes — never mix them:
-- **Platform role** (`admin` / `user`) — running the SaaS
-- **Workspace role** (`owner` / `admin` / `member`) — one customer's team
+Two role axes — never conflate: **platform role** (`admin`/`user`, running the
+SaaS) vs **workspace role** (`owner`/`admin`/`member`, one customer's team).
 
-### Models
+## Models
 
-**Workspace** — `appId`, `workspaceId` (unique, indexed), `name`, `ownerUserId`
-(nullable until activation), `ownerEmail`, `status`
+- **Workspace** — `appId`, `workspaceId` (unique, indexed), `name`,
+  `ownerUserId` (nullable), `ownerEmail` (indexed — used for idempotency),
+  `status`
+- **WorkspaceMember** — `appId`, `workspaceId`, `userId`, `role`, `status`;
+  unique index `(workspaceId, userId)`
+- **Invitation** — `tokenHash` (SHA-256, **never the raw token**), `expiresAt`,
+  `status`
+- **Every `<TENANT_MODELS>`** gains `appId` + `workspaceId` (required, indexed),
+  and every existing index becomes workspace-scoped. Global uniqueness rules
+  become unique **per workspace**.
 
-**WorkspaceMember** — `appId`, `workspaceId`, `userId`, `role`, `status`
-· unique compound index `(workspaceId, userId)`
+Workspace id: `` `ws_${crypto.randomBytes(18).toString('base64url')}` `` —
+random, never sequential.
 
-**Invitation** — `appId`, `workspaceId`, `email`, `role`, `tokenHash`, `status`,
-`expiresAt`
-· **Store a SHA-256 hash, never the raw token.** A DB leak must not yield working
-invite links.
+## Middleware
 
-**Every model in `<TENANT_MODELS>`** gets:
+- `authenticate` → `req.user`
+- `resolveWorkspace` → finds active membership; **lazily creates a personal
+  workspace if none** (self-heals old accounts, no migration); returns **403
+  `WORKSPACE_INACTIVE`** for non-active workspaces; attaches `req.workspaceId`
+  and `req.wsRole`
+- `requireWorkspaceRole(...roles)` for owner/admin routes
 
-```js
-appId:       { type: String, default: APP_ID, index: true },
-workspaceId: { type: String, required: true, index: true },
-```
+## THE ISOLATION RULES — non-negotiable
 
-…and every index becomes workspace-scoped. A global uniqueness rule (e.g. unique
-domain) becomes unique **per workspace** — otherwise customer B can't create a
-record customer A already has.
-
-### Workspace ID
-
-```js
-`ws_${crypto.randomBytes(18).toString('base64url')}`
-```
-
-Random, unguessable, never sequential.
-
-### THE ISOLATION RULES — non-negotiable
-
-1. **`workspaceId` comes only from the session.** Never from a URL, body, query,
-   or header. A customer must never be able to *name* another's workspace.
+1. **`workspaceId` comes only from the session.** Never from URL, body, query, or
+   header. A customer must never be able to *name* another's workspace.
 2. **Every tenant query filters `{ appId, workspaceId }`.** A bare
    `Model.findById(id)` on tenant data is a bug.
-3. **Cross-tenant access returns 404, never 403.** A 403 confirms the record
-   exists and lets an attacker enumerate IDs.
-4. **Members see only their own records; owner/admin see all.** Add `userId` to
-   the filter for the `member` role.
-5. **Background jobs read `workspaceId` from the stored record** — a queued job
-   has no session.
-6. **The owner's role can never be changed or removed** through the team API.
-
-### Middleware
-
-- `authenticate` — verify access token → `req.user`
-- `resolveWorkspace` — find active membership; **lazily create a personal
-  workspace if none** (self-heals pre-multi-tenancy accounts, no migration);
-  block non-active workspaces with **403 `WORKSPACE_INACTIVE`**; attach
-  `req.workspaceId` + `req.wsRole`
-- `requireWorkspaceRole(...roles)` — guard owner/admin routes
-
-### Routes
-
-```
-GET    /workspace              context { workspaceId, role, name, status, ownerEmail }
-PATCH  /workspace              rename                        (owner/admin)
-GET    /workspace/stats        totals + time series          (owner/admin)
-GET    /workspace/members      roster                        (owner/admin)
-POST   /workspace/invite       create invite link            (owner/admin)
-PATCH  /workspace/members/:id  change role (never owner)     (owner/admin)
-DELETE /workspace/members/:id  remove member                 (owner/admin)
-
-GET    /workspace/join/:token  public — describe the invite
-POST   /workspace/join/:token  public — accept, create user, sign in
-POST   /workspace/activate     public — email + code (rate limited)
-```
+3. **Cross-tenant access returns 404, never 403.** A 403 confirms existence and
+   allows ID enumeration.
+4. **Members see only their own records; owner/admin see all.**
+5. **Background jobs read `workspaceId` from the stored record** — no session.
+6. **The owner's role can never be changed or removed** via the team API.
 
 ---
 
-## 2. THE STORE BRIDGE (verified working)
+# PART B — THE STORE BRIDGE (server-to-server)
 
-Your Base44 store calls the app directly when someone buys. Three endpoints,
-one shared secret, one base URL.
+Your store calls the app directly when someone buys. Four endpoints, one shared
+secret, one base URL.
 
 ```
-POST /api/v1/platform/provision    ← on purchase
-POST /api/v1/platform/suspend      ← on refund / chargeback
-POST /api/v1/platform/reactivate   ← if the refund reverses
+GET  /api/v1/platform/manifest      ← discovery, PUBLIC
+POST /api/v1/platform/provision     ← on purchase
+POST /api/v1/platform/suspend       ← on refund
+POST /api/v1/platform/reactivate    ← on reversal
 ```
 
-### The guard
+## The guard
 
 ```js
 const configured = env.PLATFORM_SECRET || process.env.PLATFORM_SECRET;
@@ -137,261 +104,296 @@ if (!configured || !safeEqual(provided, configured)) {
 }
 ```
 
-**Fails closed.** No secret configured → everything rejected. The alternative
-(no secret = no auth) would let anyone who finds your URL mint free accounts or
-suspend your paying customers.
+**Fails closed** — no secret configured means everything is rejected. The
+alternative would let anyone who finds the URL mint free accounts or suspend
+paying customers. Use a **length-safe constant-time compare**; `a === b` leaks
+length and prefix through timing.
 
-Use a **length-safe constant-time compare**. `a === b` leaks length and prefix
-through timing.
+## The manifest (public, no secret)
 
-### What provision does
-
-One call creates **all three**:
-1. Workspace
-2. User account (with the password you send)
-3. Owner membership linking them
-
-The buyer logs in immediately — no activation step, no workspace ID to type.
-
-### Store-side call
-
-```ts
-const password = generateSecurePassword();  // generate in the store, never log it
-
-const res = await fetch(`${Deno.env.get("APP_URL")}/api/v1/platform/provision`, {
-  method: "POST",
-  signal: AbortSignal.timeout(60000),        // see cold-start trap below
-  headers: {
-    "Content-Type": "application/json",
-    "x-platform-secret": Deno.env.get("APP_PLATFORM_SECRET"),
-  },
-  body: JSON.stringify({
-    workspaceId: `ws_order_${order.id}`,      // STABLE — see idempotency trap
-    ownerEmail: customerEmail,
-    ownerName: customerName,
-    password,
-  }),
-});
-```
-
-**Verified response:**
+The store is given only a base URL and fetches this to learn the rest. Keep the
+shape identical in every app so one store-side reader works for all of them.
 
 ```json
-{ "success": true,
-  "message": "Workspace provisioned.",
-  "data": { "workspaceId": "ws_test_1",
-            "method": "password",
-            "loginUrl": "https://your-frontend.onrender.com/login" } }
+{ "appId": "<APP_ID>", "name": "...", "apiVersion": "v1", "workspaceSystem": "1.0",
+  "auth": { "type": "shared-secret", "header": "x-platform-secret" },
+  "endpoints": { "provision": "...", "suspend": "...", "reactivate": "..." },
+  "defaults": { "method": "password", "generatesPassword": true, "sendsWelcomeEmail": true },
+  "loginUrl": "https://.../login",
+  "ready": true }
 ```
 
-Save `loginUrl` + email + password into the order's delivery instructions so the
-buyer gets them in their confirmation email.
+`ready` is false when `PLATFORM_SECRET` is unset — it surfaces the commonest
+setup mistake before a customer hits it. Contains no secrets and grants nothing.
 
-### Three provisioning methods (priority order)
+## Provision — the contract
 
-1. **`password`** — store generated it; buyer signs in normally. **Preferred.**
-2. **`activationCode`** — buyer enters email + 6–7 digit code to set a password
-3. **Neither** — returns a one-time join link
+**The store sends two fields. Everything else is automatic.**
 
-Re-provisioning an existing owner **resets their password** — that's how
-"resend my login" works.
+```json
+{ "ownerName": "Jane Smith", "ownerEmail": "customer@example.com" }
+```
 
-### Secrets per app
+```json
+{ "workspaceId": "ws_...", "method": "password",
+  "loginUrl": "https://.../login",
+  "temporaryPassword": "7Kp$mRt2vXqB9wZa", "emailed": true }
+```
 
-| Where | Name | Value |
-|---|---|---|
-| App backend (Render) | `PLATFORM_SECRET` | the token |
-| Base44 store | `<APP>_PLATFORM_SECRET` | same token |
-| Base44 store | `<APP>_URL` | backend base URL |
+One call creates **workspace + user + owner membership**, generates the password,
+and emails the credentials. The buyer signs in immediately.
 
-**Use a different secret per app.** One leak then costs you one app, not all 44.
+### Required behaviour
+
+**Default to a live owner account, never a join link.** A workspace with
+`ownerUserId: null` waiting on a click is the opposite of what a paying customer
+wants. The join-link flow is opt-in only via `method: "link"`.
+
+**Generate the password when none is supplied.** Many stores cannot generate one.
+Return it **once** as `temporaryPassword`; only a bcrypt hash is stored, so it can
+never be read back. Exclude ambiguous characters (`0/O`, `1/l/I`) — a human
+retypes it from an email.
+
+**Send the welcome email by default**, opt out with `sendWelcomeEmail: false`:
+
+```js
+const shouldEmail = req.body.sendWelcomeEmail !== false;
+```
+
+Use `!== false`, never `if (flag)` — a flag that can only ever be enabled is a
+trap.
+
+**A mail failure must NOT fail provisioning.** The account already exists and the
+customer has paid. Return `emailed: false` and let the store deliver the password
+as a fallback.
+
+**Be idempotent two ways.** Payment webhooks retry.
+1. A supplied `workspaceId` that already exists → reactivate and reuse
+2. **No `workspaceId` → look up an existing workspace by `ownerEmail` and reuse
+   it.** Without this, every retry mints a second workspace for the same buyer
+   and their membership lookup becomes ambiguous.
+
+Re-provisioning an existing owner resets their password — that is your
+"resend my login" with no extra endpoint.
+
+**The buyer never types a workspace ID.** They log in with email + password.
+
+## Suspend / reactivate
+
+```json
+{ "workspaceId": "ws_..." }   →   { "workspaceId": "ws_...", "status": "suspended" }
+```
+
+**Validate and confirm a match.** A missing or misspelled id must return 400/404,
+never a cheerful 200. A refund webhook that reports success while changing
+nothing leaves the customer with full access and you never find out.
+
+## Store-side call
+
+```ts
+const res = await fetch(`${app.baseUrl}/api/v1/platform/provision`, {
+  method: "POST",
+  signal: AbortSignal.timeout(60000),      // cold starts — see traps
+  headers: { "Content-Type": "application/json", "x-platform-secret": app.secret },
+  body: JSON.stringify({ ownerName, ownerEmail }),
+});
+const { data } = await res.json();
+order.workspaceId = data.workspaceId;      // REQUIRED for refunds later
+if (!data.emailed) { /* deliver data.temporaryPassword yourself */ }
+```
+
+**Use a different secret per app.** One leak then costs one app, not all of them.
 
 ---
 
-## 3. BRING-YOUR-OWN LLM KEYS
+# PART C — TRANSACTIONAL EMAIL
 
-Each workspace can paste its own AI provider key, so usage bills to their own
-account. No key → falls back to the platform key.
+## Provider registry
 
-### One registry file
-
-`services/ai/providers.js` is the single source of truth: detection regex,
-client functions, default model, platform env key. Adding a provider is **one
-entry** — the model enum, Settings UI, encryption and isolation all follow.
-
-```js
-const PROVIDERS = [
-  { id: 'anthropic',  label: 'Anthropic (Claude)', match: /^sk-ant-[A-Za-z0-9_-]{20,}$/ },
-  { id: 'openrouter', label: 'OpenRouter',         match: /^sk-or-[A-Za-z0-9_-]{20,}$/,
-    baseUrl: 'https://openrouter.ai/api/v1/chat/completions' },
-  { id: 'groq',       label: 'Groq',               match: /^gsk_[A-Za-z0-9]{20,}$/,
-    baseUrl: 'https://api.groq.com/openai/v1/chat/completions' },
-  { id: 'gemini',     label: 'Google Gemini',      match: /^AIza[\w-]{30,}$/ },
-  { id: 'openai',     label: 'OpenAI',             match: /^sk-[A-Za-z0-9_-]{20,}$/ },
-];
-```
-
-> ⚠️ **ORDER IS LOAD-BEARING.** `sk-ant-…` and `sk-or-…` also match OpenAI's
-> broader `sk-…`. Check OpenAI first and every Claude key is silently sent to
-> OpenAI and rejected. Specific prefixes first — **and write a regression test.**
-
-Groq and OpenRouter speak the OpenAI wire format: reuse the OpenAI client with a
-per-credential `baseUrl`. Anthropic needs its own client (`system` is top-level,
-and with no JSON mode you force JSON by prefilling the assistant turn with `{`).
-
-### Detect server-side, from the key itself
-
-The user pastes **one field**. The server determines the provider from the key's
-shape. **Never accept a `provider` field from the client** — a mismatch then
-becomes structurally impossible.
-
-### Storage
-
-- **AES-256-GCM**, random 12-byte IV per encryption, store `{ciphertext, iv, tag}`
-- Secret fields `select: false` **and** a `toJSON` that strips them
-- **Only `last4` is ever returned by the API.** Never widen this.
-- Unique index `(appId, workspaceId)` — one key per workspace
-- Key from `ENCRYPTION_KEY`; if unset derive via scrypt from the refresh secret
-  **and log a warning** (rotating that secret then invalidates stored keys)
-
-### Verify on save
-
-- Provider **rejects the key** → fail the save with a clear message
-- **Any other failure** (network, rate limit) → store it, mark `unverified`,
-  expose a **Test** button
-
-### One chokepoint
-
-```js
-resolveCredential(workspaceId) -> { provider, apiKey, model, baseUrl?, source }
-```
-
-Returns the workspace's own key (`source: 'workspace'`) else the platform key
-(`source: 'platform'`). **Never throws** on a missing key — falling back is
-normal. If decryption fails, log, fall back, prompt the tenant to re-paste.
-
-Dispatch on **the credential's provider**, not a global setting: a workspace on
-Claude uses Claude even when the platform default is Gemini.
-
-### Routes (owner/admin only)
+Mirror the LLM registry so both read alike. Resend is HTTP — no SDK, no SMTP
+ports (which some hosts block). SMTP would need `nodemailer`; don't add it until
+something needs it.
 
 ```
-GET    /workspace/api-key       { key: masked | null, providers: [...], platformFallback }
-PUT    /workspace/api-key       save/replace (rate limited)
-POST   /workspace/api-key/test  re-verify
-DELETE /workspace/api-key       remove, fall back to platform
+services/email/
+  providers.js     ← resend (+ others), isConfigured(), send()
+  emailClient.js   ← sendEmail({ to, subject, html, text, replyTo })
+  templates.js     ← passwordReset, welcomeCredentials, teamInvite
 ```
+
+## Rules
+
+**Degrade, never throw.** A missing key must not break password reset for
+everyone. Return `{ sent: false }`, log the link in development, and let callers
+carry on.
+
+**Never surface `sent` to the user.** "No email was sent" reveals whether an
+account exists.
+
+**Never log the body.** Reset links and passwords are credentials. Log recipient,
+subject, provider id — nothing else.
+
+**Templates need inline styles and a text part.** Mail clients strip `<style>`
+blocks; HTML-only mail scores worse with spam filters.
+
+**Distinguish provider errors properly.** Resend returns **403 for both a bad key
+and an unverified domain**. Blaming the key sends people regenerating perfectly
+good credentials — match on the message and raise
+`EMAIL_DOMAIN_UNVERIFIED` separately.
+
+## Password reset
+
+```
+POST /api/v1/auth/forgot-password   { email }
+POST /api/v1/auth/reset-password    { token, password }
+```
+
+- **Identical response for known and unknown addresses** — same status, same
+  message. Any difference enumerates your customers.
+- **Store SHA-256 of the token**, never the raw value. Index it, TTL it.
+- **Single use** (`usedAt`) and short expiry (1 hour).
+- **A new request invalidates outstanding tokens**, or a forwarded email stays
+  live.
+- **Bump `tokenVersion` on reset** so every existing refresh token dies — that is
+  the point of a reset.
+- **Rate limit both endpoints.** Otherwise the first is an email bomber and the
+  second is brute-forceable.
+- Expired, spent, and fabricated tokens all return the **same** message.
 
 ---
 
-## 4. ENV VARS
+# PART D — PER-WORKSPACE LLM KEYS
+
+Each workspace may paste its own provider key; usage then bills to their account.
+No key → falls back to the platform key.
+
+## One registry file
+
+`services/ai/providers.js` holds detection regex, client fns, default model, and
+platform env key per provider.
+
+```js
+[ { id:'anthropic',  match:/^sk-ant-[A-Za-z0-9_-]{20,}$/ },
+  { id:'openrouter', match:/^sk-or-[A-Za-z0-9_-]{20,}$/,  baseUrl:'https://openrouter.ai/api/v1/chat/completions' },
+  { id:'groq',       match:/^gsk_[A-Za-z0-9]{20,}$/,      baseUrl:'https://api.groq.com/openai/v1/chat/completions' },
+  { id:'gemini',     match:/^AIza[\w-]{30,}$/ },
+  { id:'openai',     match:/^sk-[A-Za-z0-9_-]{20,}$/ } ]
+```
+
+> ⚠️ **ORDER IS LOAD-BEARING.** `sk-ant-` and `sk-or-` also match OpenAI's
+> broader `sk-`. Check OpenAI first and every Claude key is silently sent to
+> OpenAI and rejected. Specific prefixes first — **write a regression test.**
+
+## Rules
+
+- **Detect the provider server-side from the key.** Never accept a `provider`
+  field from the client; a mismatch then becomes impossible.
+- **AES-256-GCM at rest**, random IV, store `{ciphertext, iv, tag}`. Secret fields
+  `select:false` **plus** a `toJSON` that strips them.
+- **Only `last4` is ever returned.** Never widen this.
+- **Verify on save** with one cheap call: a rejected key fails the save; any other
+  failure stores it as `unverified` with a Test button.
+- **`resolveCredential(workspaceId)`** is the single chokepoint → workspace key,
+  else platform key. **Never throws** on a missing key. Dispatch on the
+  credential's provider, not a global setting.
+
+---
+
+# PART E — ENVIRONMENT
 
 ```bash
-# Core
 NODE_ENV=production
-PORT=5000
 MONGODB_URI=
 CLIENT_URL=https://your-frontend.com        # NO trailing slash — builds buyer login links
 CORS_ORIGINS=https://your-frontend.com
 
-# Secrets — generate unique per app, never reuse
 JWT_ACCESS_SECRET=      # 48+ chars
 JWT_REFRESH_SECRET=     # 48+ chars
 COOKIE_SECRET=          # 16+ chars
-ENCRYPTION_KEY=         # base64, 32 bytes — encrypts tenant AI keys
+ENCRYPTION_KEY=         # base64 32 bytes — encrypts tenant AI keys
 PLATFORM_SECRET=        # store bridge; unset = bridge disabled
 
-# AI platform fallback (workspaces may use any provider regardless)
+APP_NAME=Your App
+EMAIL_PROVIDER=resend   # 'none' disables sending
+RESEND_API_KEY=
+EMAIL_FROM=Your App <no-reply@VERIFIED-domain.com>
+EMAIL_REPLY_TO=         # a mailbox that can actually RECEIVE
+
 AI_PROVIDER=gemini
 GEMINI_API_KEY=
-OPENAI_API_KEY=
-ANTHROPIC_API_KEY=
-
-ALLOW_PUBLIC_SIGNUP=true    # false = store-only accounts
 ```
 
 ---
 
-## 5. DEPLOY CHECKLIST (Render)
+# PART F — TRAPS ALREADY PAID FOR
 
-- Backend = **Web Service**, start command **`npm start`** (not `npm run dev`)
-- Build command `npm install` (add a no-op `build` script if Render insists)
-- Frontend = **Static Site**; `VITE_API_URL` must **include `/api/v1`**
-- MongoDB Atlas as an external service
-- **Env changes need a redeploy** — Render does not hot-reload them
-
-Verify after deploy:
-
-```bash
-curl https://your-backend.onrender.com/api/v1/health
-```
-
-JSON = backend. HTML = you grabbed the frontend URL by mistake.
-
----
-
-## 6. TRAPS ALREADY PAID FOR — do not rediscover these
-
-1. **Cold start loses sales.** Render free tier sleeps after ~15 min idle;
-   first request took **32.6 s** (vs 0.37 s warm). A purchase is exactly the
-   traffic that hits a cold service. Set a **60 s timeout** store-side, retry
-   once, and pay for a tier that doesn't sleep if you're taking real money.
-2. **Idempotency.** `workspaceId` defaults to a random value if you omit it, so
-   a retried payment webhook creates a **second workspace** and the membership
-   lookup becomes ambiguous. Always send a stable `ws_order_<id>`.
-3. **Split-domain logout.** API and client on different domains → the refresh
-   cookie needs `SameSite=None; Secure` in production. `Strict` silently drops it
-   and users get logged out on refresh.
+1. **Cold starts lose sales.** Free-tier hosts sleep after ~15 min; first request
+   took **32.6 s** vs 0.37 s warm. A purchase is exactly the traffic that hits a
+   cold service. 60 s timeout store-side, retry once, and pay for a tier that
+   doesn't sleep once real money is involved.
+2. **Provision must be idempotent by email**, not just by supplied id — see B.
+3. **Split-domain logout.** API and client on different domains → refresh cookie
+   needs `SameSite=None; Secure`. `Strict` silently drops it.
 4. **Flags that can't turn off.** `env.X || process.env.X === 'true'` can only
-   enable. Use `process.env.X !== 'false'`.
+   enable. Use `!== false`.
 5. **`NODE_ENV=test` must be set by the FIRST import** in the test entry file —
-   config modules read `process.env` at load time. Without it, tests that should
-   skip network calls hit real provider APIs.
-6. **Status-code param mismatch.** A helper taking `status` but called with
-   `statusCode` silently returns 200. Assert real status codes in tests.
-7. **Every fetch needs a timeout, including DNS.** A hung DNS lookup with no
-   timeout leaves jobs stuck forever. Add an overall deadline plus a startup
-   sweep that fails orphans and refunds credits.
-8. **Don't let a stuck job disable its own escape hatch.** If the UI disables
+   config reads `process.env` at load. Without it, tests that should skip network
+   calls hit real provider APIs.
+6. **Sending ≠ receiving.** A domain verified for sending has no inbox. Check MX
+   before pointing `EMAIL_REPLY_TO` at it, or replies bounce silently.
+7. **Verify the exact sending domain.** A subdomain verified
+   (`reply.example.com`) does not authorise the root (`example.com`).
+8. **Every fetch needs a timeout, including DNS.** A hung lookup leaves jobs stuck
+   forever. Add a deadline plus a startup sweep that fails orphans and refunds.
+9. **Don't let a stuck job disable its own escape hatch.** If the UI disables
    "Retry" whenever status is `running`, a stuck record locks the user out
-   permanently. Treat anything older than the server deadline as stale and
-   re-enable the button.
-9. **Never log a key**, even partially. Log provider and outcome only.
-10. **PowerShell aliases `curl` to `Invoke-WebRequest`** — `-X/-H/-d` fail. Use
-    `curl.exe` when giving Windows users commands.
+   permanently. Treat anything past the server deadline as stale.
+10. **Never log a key or password**, even partially.
+11. **PowerShell aliases `curl` to `Invoke-WebRequest`** — `-X/-H/-d` fail. Tell
+    Windows users to use `curl.exe` or `Invoke-RestMethod`.
+12. **JSON keys are case-sensitive.** `owneremail` is not `ownerEmail`; the
+    request fails with a confusing "required field" error.
 
 ---
 
-## 7. ACCEPTANCE TESTS — not done until these pass
+# PART G — ACCEPTANCE TESTS
 
 **Workspace isolation**
-- [ ] Each new user gets their own workspace
 - [ ] B's list never contains A's records
 - [ ] B opening A's record ID → **404, not 403**
-- [ ] B cannot update/delete A's record; A's record is untouched
+- [ ] B cannot update/delete A's record; A's is untouched
 - [ ] Suspended workspace blocked from all tenant routes (403)
 - [ ] A member cannot reach team management (403)
 - [ ] Owner's role cannot be changed or removed
-- [ ] Invalid/expired join token rejected
 
 **Store bridge**
-- [ ] `/platform/*` without the secret → 401
-- [ ] Provision with a password → buyer logs in normally as owner
-- [ ] Re-provisioning the same `workspaceId` does not duplicate
+- [ ] `/platform/*` without the secret → 401; manifest still readable
+- [ ] A bare `{ ownerEmail }` creates a **real owner account** with
+      `ownerUserId` populated, and that password logs in
+- [ ] Calling twice with no `workspaceId` reuses the same workspace (one row)
+- [ ] Welcome email is attempted by default and can be disabled
+- [ ] Suspending an unknown/missing `workspaceId` → 404/400, never 200
 - [ ] Suspend blocks access; reactivate restores it
+
+**Email / password reset**
+- [ ] Known and unknown addresses return identical status AND message
+- [ ] Stored token is a 64-char SHA-256 digest, not the raw value
+- [ ] A spent token cannot be reused
+- [ ] An expired token is rejected
+- [ ] Requesting a new link invalidates the previous one
+- [ ] Password policy enforced on reset
 
 **API keys**
 - [ ] Raw key appears **nowhere** in any response (assert the whole body)
 - [ ] Stored document has no plaintext; encryption envelope present
 - [ ] B resolves to `source: 'platform'` and never reaches A's key
-- [ ] Saving B's key doesn't touch A's; one key per workspace
 - [ ] Member gets 403 on read, replace, AND delete
-- [ ] Every provider detected from its key alone
-- [ ] `sk-ant-…` → Anthropic, **not** OpenAI (prefix-ordering regression)
-- [ ] OpenAI-compatible providers hit their own base URL
+- [ ] `sk-ant-…` detects as Anthropic, **not** OpenAI
 
 Run the suite and report the **real** pass/fail count. If something fails, say so
 with the output — never describe the build as complete.
+
+## PROMPT ENDS HERE
 
 ---
 
@@ -399,13 +401,13 @@ with the output — never describe the build as complete.
 
 | Concern | File |
 |---|---|
-| Provider registry | `server/src/services/ai/providers.js` |
-| Key storage + resolution | `server/src/services/workspace/apiKeyService.js` |
-| Encryption | `server/src/utils/secretBox.js` |
-| Provider dispatch | `server/src/services/ai/aiClient.js` |
+| Store bridge | `server/src/controllers/platformController.js` |
 | Workspace resolution | `server/src/middleware/auth.js` |
 | Tenant filtering | `server/src/middleware/ownership.js` |
-| Store bridge | `server/src/controllers/platformController.js` |
-| Membership + invites | `server/src/services/workspace/membershipService.js` |
-| Settings UI | `client/src/components/workspace/ApiKeyPanel.jsx` |
-| Isolation tests | `server/tests/api/workspace.test.js`, `apiKeys.test.js` |
+| Email providers | `server/src/services/email/providers.js` |
+| Email templates | `server/src/services/email/templates.js` |
+| Password reset | `server/src/services/auth/passwordResetService.js` |
+| LLM registry | `server/src/services/ai/providers.js` |
+| Key storage | `server/src/services/workspace/apiKeyService.js` |
+| Encryption | `server/src/utils/secretBox.js` |
+| Tests | `server/tests/api/{workspace,apiKeys,passwordReset}.test.js` |

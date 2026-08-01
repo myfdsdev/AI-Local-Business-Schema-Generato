@@ -19,6 +19,9 @@ export const workspaceApi = {
   joinInfo: (token) => api.get(`/workspace/join/${token}`).then((r) => r.data.data),
   acceptJoin: (token, payload) =>
     api.post(`/workspace/join/${token}`, payload).then((r) => r.data.data),
+  // Owner activation by email + code. ActivatePage has always called this; it
+  // was simply missing here, so that page threw on submit.
+  activate: (payload) => api.post('/workspace/activate', payload).then((r) => r.data.data),
 };
 
 export default workspaceApi;

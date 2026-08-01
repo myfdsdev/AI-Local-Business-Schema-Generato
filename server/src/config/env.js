@@ -81,6 +81,12 @@ const baseSchema = z.object({
   // those endpoints are disabled (this app runs standalone).
   PLATFORM_SECRET: z.string().optional(),
 
+  // Gate on the self-service admin-access page. The link is the only thing
+  // standing between a stranger and workspace ownership, so it is a rotatable
+  // secret rather than an obscure URL. When unset the feature is DISABLED —
+  // fail closed, like PLATFORM_SECRET.
+  ADMIN_ACCESS_CODE: z.string().optional(),
+
   // Open signup: anyone can register and becomes the owner of their own new
   // workspace. Set to false for the hub-only model (accounts created only by
   // provisioning or team invites).

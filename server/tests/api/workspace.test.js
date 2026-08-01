@@ -4,7 +4,7 @@ import { after, before, beforeEach, describe, it } from 'node:test';
 import request from 'supertest';
 
 import { Workspace } from '../../src/models/index.js';
-import { authHeader, registerUser, seedPlans } from '../helpers/factories.js';
+import { authHeader, registerOwner, registerUser, seedPlans } from '../helpers/factories.js';
 import { clearDatabase, getApp, startTestServer, stopTestServer } from '../helpers/testServer.js';
 
 const PROJECT = {
@@ -16,7 +16,7 @@ const PROJECT = {
 };
 
 async function makeOwnerWithProject(overrides = {}) {
-  const { response } = await registerUser(overrides);
+  const { response } = await registerOwner(overrides);
   const token = response.body.data.accessToken;
   const created = await request(getApp())
     .post('/api/v1/projects')
@@ -48,7 +48,7 @@ describe('Workspace isolation', () => {
 
   it('Buyer B cannot see or open Buyer A’s project', async () => {
     const a = await makeOwnerWithProject();
-    const b = await registerUser(); // separate workspace, no projects
+    const b = await registerOwner(); // separate workspace, no projects
     const bToken = b.response.body.data.accessToken;
 
     // B's list is empty — A's project is not visible.

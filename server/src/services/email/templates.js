@@ -112,6 +112,66 @@ We recommend changing this password after your first sign-in.`,
   };
 }
 
+/**
+ * Sent when someone requests admin access. Clicking the link is what actually
+ * grants it, so this message IS the approval step — it proves the requester
+ * controls the address they typed.
+ */
+export function adminAccessEmail({ name, claimUrl, expiresInHours }) {
+  const greeting = name ? `Hi ${name},` : 'Hi,';
+
+  return {
+    subject: `Confirm your ${APP_NAME} workspace access`,
+    html: layout({
+      heading: 'Confirm your access',
+      bodyHtml: `
+        <p style="margin:0 0 12px;font-size:15px;color:#334155;line-height:1.6;">${escapeHtml(greeting)}</p>
+        <p style="margin:0;font-size:15px;color:#334155;line-height:1.6;">
+          Someone requested workspace access for this email address. Confirm below and your
+          workspace will be created and ready to use straight away. This link expires in
+          ${expiresInHours} hours and can only be used once.
+        </p>`,
+      cta: { url: claimUrl, label: 'Confirm and create my workspace' },
+    }),
+    text: `${greeting}
+
+Someone requested ${APP_NAME} workspace access for this email address.
+
+Confirm here and your workspace will be created (expires in ${expiresInHours} hours, single use):
+${claimUrl}
+
+If you didn't request this, ignore this email — nothing has been created.`,
+  };
+}
+
+/**
+ * Access granted to someone who ALREADY has an account. No password is included
+ * because theirs is unchanged — emailing a freshly generated one here would send
+ * a password that does not work.
+ */
+export function accessGrantedEmail({ name, loginUrl }) {
+  const greeting = name ? `Hi ${name},` : 'Hi,';
+
+  return {
+    subject: `Your ${APP_NAME} workspace is ready`,
+    html: layout({
+      heading: 'Your workspace is ready',
+      bodyHtml: `
+        <p style="margin:0 0 12px;font-size:15px;color:#334155;line-height:1.6;">${escapeHtml(greeting)}</p>
+        <p style="margin:0;font-size:15px;color:#334155;line-height:1.6;">
+          Your workspace has been created and you own it. Sign in with the password you already
+          use — nothing about your login has changed.
+        </p>`,
+      cta: { url: loginUrl, label: 'Sign in' },
+    }),
+    text: `${greeting}
+
+Your ${APP_NAME} workspace has been created and you own it.
+
+Sign in with your existing password: ${loginUrl}`,
+  };
+}
+
 export function teamInviteEmail({ inviterName, workspaceName, role, joinUrl }) {
   const who = inviterName ? escapeHtml(inviterName) : 'A workspace owner';
   const where = workspaceName ? escapeHtml(workspaceName) : 'their workspace';
@@ -134,4 +194,10 @@ ${joinUrl}`,
   };
 }
 
-export default { passwordResetEmail, welcomeCredentialsEmail, teamInviteEmail };
+export default {
+  passwordResetEmail,
+  welcomeCredentialsEmail,
+  adminAccessEmail,
+  accessGrantedEmail,
+  teamInviteEmail,
+};

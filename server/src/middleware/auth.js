@@ -3,7 +3,7 @@ import { User, Workspace } from '../models/index.js';
 import ApiError from '../utils/ApiError.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { verifyAccessToken } from '../services/auth/tokenService.js';
-import { ensurePersonalWorkspace, findActiveMembership } from '../services/workspace/workspaceService.js';
+import { findActiveMembership } from '../services/workspace/workspaceService.js';
 
 function readBearerToken(req) {
   const header = req.get('authorization');
@@ -49,16 +49,22 @@ export const authenticate = asyncHandler(async (req, _res, next) => {
 /**
  * Resolves the caller's workspace from their MEMBERSHIP — never from the URL or
  * body. Attaches req.workspaceId and req.wsRole for downstream scoping. Runs
- * after authenticate. Blocks access to a suspended workspace. Lazily creates a
- * personal workspace for any user that has none, so the app never 500s on a
- * pre-multi-tenancy account.
+ * after authenticate. Blocks suspended workspaces.
+ *
+ * A user with no membership is REFUSED, never given one. This must hard-fail:
+ * `workspaceFilter` (middleware/ownership.js) builds
+ * `{ workspaceId: req.workspaceId }`, so letting an undefined value through
+ * would query `{ workspaceId: undefined }` and match across tenants. Signing up
+ * no longer grants a workspace, so this is now a normal state, not an edge case.
  */
 export const resolveWorkspace = asyncHandler(async (req, _res, next) => {
   if (!req.user) throw ApiError.unauthorized('You must be signed in to do that.');
 
-  let membership = await findActiveMembership(req.user._id);
+  const membership = await findActiveMembership(req.user._id);
   if (!membership) {
-    membership = await ensurePersonalWorkspace({ userId: req.user._id, name: req.user.name });
+    throw ApiError.forbidden('Your account is not linked to a workspace yet.', {
+      code: 'WORKSPACE_REQUIRED',
+    });
   }
 
   const workspace = await Workspace.findOne({ workspaceId: membership.workspaceId }).lean();

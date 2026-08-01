@@ -3,12 +3,12 @@ import { after, before, beforeEach, describe, it } from 'node:test';
 
 import request from 'supertest';
 
-import { authHeader, registerUser, seedPlans } from '../helpers/factories.js';
+import { authHeader, registerOwner, seedPlans } from '../helpers/factories.js';
 import { clearDatabase, getApp, startTestServer, stopTestServer } from '../helpers/testServer.js';
 
 /** Registers a user and returns their access token. */
 async function verifiedUser(overrides = {}) {
-  const { response } = await registerUser(overrides);
+  const { response } = await registerOwner(overrides);
   return { token: response.body.data.accessToken, user: response.body.data.user };
 }
 

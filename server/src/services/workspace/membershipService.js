@@ -41,6 +41,31 @@ export async function createInvite({ workspaceId, email, role, invitedBy }) {
   return { token: rawToken, role: safeRole };
 }
 
+/**
+ * Link-based OWNER invitation, for granting workspace ownership by email.
+ *
+ * Separate from createInvite deliberately: that one clamps the role to
+ * admin/member so nothing reachable from the team API can mint an owner. This
+ * is only ever called by trusted server-side flows (admin-access grants), never
+ * from a user-supplied role.
+ */
+export async function createOwnerInvite({ workspaceId, email, ttlMs = DURATIONS.DAY * 3 }) {
+  const rawToken = generateRawToken();
+
+  await Invitation.create({
+    appId: APP_ID,
+    workspaceId,
+    email: email.toLowerCase().trim(),
+    role: WORKSPACE_ROLES.OWNER,
+    tokenHash: hashToken(rawToken),
+    invitedBy: null,
+    status: INVITATION_STATUS.PENDING,
+    expiresAt: addDuration(new Date(), ttlMs),
+  });
+
+  return { token: rawToken };
+}
+
 /** The invitation behind a raw token, if still usable. */
 export async function getUsableInvite(rawToken) {
   const invite = await Invitation.findOne({
@@ -185,6 +210,7 @@ export async function updateMemberRole({ workspaceId, memberUserId, role }) {
 export default {
   listMembers,
   createInvite,
+  createOwnerInvite,
   getUsableInvite,
   acceptInvite,
   createOwnerActivation,

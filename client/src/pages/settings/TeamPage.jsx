@@ -1,8 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { BarChart3, UserPlus, Users } from 'lucide-react';
 
-import { workspaceApi } from '@/api/workspace';
+import { useWorkspace } from '@/hooks/useWorkspace';
 import { PageHeader } from '@/components/common/PageHeader';
 import { InvitePanel } from '@/components/workspace/InvitePanel';
 import { MembersPanel } from '@/components/workspace/MembersPanel';
@@ -33,15 +32,9 @@ export default function TeamPage() {
     // Default tab keeps the URL clean; `replace` avoids stacking history entries.
     setSearchParams(id === TABS[0].id ? {} : { tab: id }, { replace: true });
 
-  // Only owners/admins manage the team. Gate POSITIVELY: show the tools only
-  // once we've confirmed an owner/admin role, so a member never briefly sees the
-  // tabs, and the notice reliably shows for members and on a failed role check.
-  const { data: workspace, isLoading: roleLoading } = useQuery({
-    queryKey: ['workspace', 'context'],
-    queryFn: workspaceApi.context,
-    retry: false,
-  });
-  const canManage = workspace?.role === 'owner' || workspace?.role === 'admin';
+  // Only owners/admins manage the team. The shared hook gates positively, so a
+  // member never briefly sees the tabs and the notice shows reliably.
+  const { isWorkspaceAdmin: canManage, isLoading: roleLoading } = useWorkspace();
 
   const ActivePanel = TABS.find((tab) => tab.id === activeId)?.Panel ?? TABS[0].Panel;
 

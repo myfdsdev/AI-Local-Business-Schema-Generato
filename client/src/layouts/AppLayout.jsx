@@ -18,9 +18,6 @@ import {
   Users,
 } from 'lucide-react';
 
-import { useQuery } from '@tanstack/react-query';
-
-import { workspaceApi } from '@/api/workspace';
 import { ChatWidget } from '@/components/assistant/ChatWidget';
 import { Logo } from '@/components/common/Logo';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -34,6 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useWorkspace } from '@/hooks/useWorkspace';
 import { cn, initials } from '@/lib/utils';
 import { useAuth } from '@/store/AuthContext';
 import { useTheme } from '@/store/ThemeContext';
@@ -71,18 +69,11 @@ export function AppLayout() {
   const location = useLocation();
 
   // The caller's role in their workspace decides which nav items show.
-  const { data: workspace } = useQuery({
-    queryKey: ['workspace', 'context'],
-    queryFn: workspaceApi.context,
-    staleTime: 5 * 60 * 1000,
-    retry: false,
-  });
-  const isWorkspaceAdmin = workspace?.role === 'owner' || workspace?.role === 'admin';
-  // Until the role loads, default to the admin view (owner is the common case);
-  // hidden items reappear instantly and members simply lose a couple of entries.
-  const visibleNavItems = NAV_ITEMS.filter(
-    (item) => !item.adminOnly || workspace === undefined || isWorkspaceAdmin,
-  );
+  const { isWorkspaceAdmin } = useWorkspace();
+  // Gate POSITIVELY. This used to fall open while the role was undefined, which
+  // showed Team/Locations/Billing/Settings to anyone whose lookup hadn't
+  // resolved — including users with no workspace at all.
+  const visibleNavItems = NAV_ITEMS.filter((item) => !item.adminOnly || isWorkspaceAdmin);
 
   const handleLogout = async () => {
     await logout();

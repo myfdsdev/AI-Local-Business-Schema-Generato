@@ -3,7 +3,9 @@ import { Route, Routes } from 'react-router-dom';
 import { ComingSoon } from '@/components/common/ComingSoon';
 import { AppLayout } from '@/layouts/AppLayout';
 import { AuthLayout } from '@/layouts/AuthLayout';
-import { ProtectedRoute, PublicOnlyRoute } from '@/routes/ProtectedRoute';
+import { ProtectedRoute, PublicOnlyRoute, RequireWorkspace } from '@/routes/ProtectedRoute';
+import JoinAdminPage from '@/pages/access/JoinAdminPage';
+import ClaimAccessPage from '@/pages/access/ClaimAccessPage';
 import LandingPage from '@/pages/marketing/LandingPage';
 import PricingPage from '@/pages/marketing/PricingPage';
 import LoginPage from '@/pages/auth/LoginPage';
@@ -39,6 +41,11 @@ export default function App() {
       <Route path="/join/:token" element={<JoinPage />} />
       <Route path="/activate" element={<ActivatePage />} />
 
+      {/* Self-service workspace access. Deliberately not linked from anywhere in
+          the app — set ADMIN_ACCESS_CODE to additionally require ?code=. */}
+      <Route path="/join-admin" element={<JoinAdminPage />} />
+      <Route path="/claim-access" element={<ClaimAccessPage />} />
+
       {/* Auth — redirect signed-in users away from login/register */}
       <Route element={<AuthLayout />}>
         <Route element={<PublicOnlyRoute />}>
@@ -56,21 +63,25 @@ export default function App() {
         <Route path="/onboarding" element={<OnboardingPage />} />
       </Route>
 
-      {/* Authenticated app */}
+      {/* Authenticated app. RequireWorkspace sits INSIDE ProtectedRoute: signed
+          in is no longer enough — an account with no workspace gets the
+          no-access screen instead of a shell whose every request would 403. */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/app" element={<AppLayout />}>
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="projects" element={<ProjectsListPage />} />
-          <Route path="projects/new" element={<NewProjectPage />} />
-          <Route path="projects/:projectId" element={<ProjectDetailPage />} />
-          <Route path="generate" element={<GenerateFromDocumentsPage />} />
-          <Route path="keywords" element={<KeywordResearchPage />} />
-          <Route path="content" element={<ContentGeneratorPage />} />
-          <Route path="team" element={<TeamPage />} />
-          <Route path="locations" element={<LocationsPage />} />
-          <Route path="billing" element={<BillingPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-          <Route path="profile" element={<ProfilePage />} />
+        <Route element={<RequireWorkspace />}>
+          <Route path="/app" element={<AppLayout />}>
+            <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="projects" element={<ProjectsListPage />} />
+            <Route path="projects/new" element={<NewProjectPage />} />
+            <Route path="projects/:projectId" element={<ProjectDetailPage />} />
+            <Route path="generate" element={<GenerateFromDocumentsPage />} />
+            <Route path="keywords" element={<KeywordResearchPage />} />
+            <Route path="content" element={<ContentGeneratorPage />} />
+            <Route path="team" element={<TeamPage />} />
+            <Route path="locations" element={<LocationsPage />} />
+            <Route path="billing" element={<BillingPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="profile" element={<ProfilePage />} />
+          </Route>
         </Route>
       </Route>
 

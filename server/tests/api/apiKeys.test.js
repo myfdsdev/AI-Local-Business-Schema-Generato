@@ -5,7 +5,7 @@ import request from 'supertest';
 
 import { WorkspaceApiKey } from '../../src/models/index.js';
 import { resolveCredential } from '../../src/services/workspace/apiKeyService.js';
-import { authHeader, registerUser, seedPlans } from '../helpers/factories.js';
+import { authHeader, registerOwner, seedPlans } from '../helpers/factories.js';
 import { clearDatabase, getApp, startTestServer, stopTestServer } from '../helpers/testServer.js';
 
 // Realistic shapes, not real credentials — these never leave the test process.
@@ -16,7 +16,7 @@ const GROQ_KEY = `gsk_${'Gr0qT3stK3yM4t3r'.repeat(2)}0987`;
 const OPENROUTER_KEY = `sk-or-v1-${'0penR0ut3rT3stK3'.repeat(2)}5678`;
 
 async function owner() {
-  const { response } = await registerUser();
+  const { response } = await registerOwner();
   return { token: response.body.data.accessToken };
 }
 

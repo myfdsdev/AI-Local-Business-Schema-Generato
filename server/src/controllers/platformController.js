@@ -1,5 +1,3 @@
-import crypto from 'node:crypto';
-
 import { APP_ID, WORKSPACE_ROLES, WORKSPACE_STATUS } from '../config/constants.js';
 import { env } from '../config/env.js';
 import logger from '../config/logger.js';
@@ -12,39 +10,12 @@ import {
   generateWorkspaceId,
 } from '../services/workspace/workspaceService.js';
 import ApiError from '../utils/ApiError.js';
+import { generatePassword } from '../utils/password.js';
 import { safeEqual } from '../utils/tokens.js';
 import { sendCreated, sendSuccess } from '../utils/ApiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
 
 const clientUrl = () => env.CLIENT_URL?.replace(/\/$/, '') ?? '';
-
-/**
- * Generates a login password on the app's behalf, for stores that cannot make
- * one themselves. Returned to the hub EXACTLY ONCE in the provision response
- * and never recoverable afterwards — only a bcrypt hash is stored.
- *
- * Ambiguous characters (0/O, 1/l/I) are excluded because a human will read this
- * out of an email and retype it. Always satisfies passwordSchema: 10+ chars with
- * at least one letter and one number.
- */
-function generatePassword() {
-  const LETTERS = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
-  const DIGITS = '23456789';
-  const SYMBOLS = '!@#$%*?';
-  const pool = LETTERS + DIGITS + SYMBOLS;
-
-  const pick = (set) => set[crypto.randomInt(0, set.length)];
-  // Seed one of each required class, then fill to length.
-  const chars = [pick(LETTERS), pick(DIGITS), pick(SYMBOLS)];
-  while (chars.length < 16) chars.push(pick(pool));
-
-  // Fisher-Yates so the seeded characters aren't always in the first positions.
-  for (let i = chars.length - 1; i > 0; i -= 1) {
-    const j = crypto.randomInt(0, i + 1);
-    [chars[i], chars[j]] = [chars[j], chars[i]];
-  }
-  return chars.join('');
-}
 
 /**
  * Guards the /platform/* endpoints: only the AppsFields hub, which holds the

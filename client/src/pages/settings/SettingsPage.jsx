@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Check, Copy, CreditCard, Loader2, User as UserIcon, Users } from 'lucide-react';
 import { toast } from 'sonner';
@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { workspaceApi } from '@/api/workspace';
 import { toApiError } from '@/api/client';
 import { ErrorState } from '@/components/common/ErrorState';
+import { useWorkspace } from '@/hooks/useWorkspace';
 import { PageHeader } from '@/components/common/PageHeader';
 import { ApiKeyPanel } from '@/components/workspace/ApiKeyPanel';
 import { Badge } from '@/components/ui/badge';
@@ -43,11 +44,9 @@ function CopyRow({ label, value }) {
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
-  const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['workspace', 'context'],
-    queryFn: workspaceApi.context,
-    retry: false,
-  });
+  // Shared hook so this page, the nav, and the team page can never disagree
+  // about who owns the workspace.
+  const { workspace: data, isLoading, isError, refetch, isWorkspaceAdmin } = useWorkspace();
 
   const [name, setName] = useState('');
   // Seed the input once the workspace loads (and whenever it changes).
@@ -55,7 +54,7 @@ export default function SettingsPage() {
     if (data?.name != null) setName(data.name);
   }, [data?.name]);
 
-  const canEdit = data?.role === 'owner' || data?.role === 'admin';
+  const canEdit = isWorkspaceAdmin;
 
   const renameMutation = useMutation({
     mutationFn: (payload) => workspaceApi.update(payload),

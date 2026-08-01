@@ -5,7 +5,7 @@ import request from 'supertest';
 
 import { BusinessProject, User, WebsiteScan } from '../../src/models/index.js';
 import { recoverOrphanedScans } from '../../src/services/scan/crawlService.js';
-import { authHeader, registerUser, seedPlans } from '../helpers/factories.js';
+import { authHeader, registerOwner, seedPlans } from '../helpers/factories.js';
 import { clearDatabase, getApp, startTestServer, stopTestServer } from '../helpers/testServer.js';
 
 const VALID_PROJECT = {
@@ -18,7 +18,7 @@ const VALID_PROJECT = {
 
 /** Reproduces what a crashed/restarted process leaves behind mid-scan. */
 async function makeStuckScan() {
-  const { response } = await registerUser();
+  const { response } = await registerOwner();
   const token = response.body.data.accessToken;
   const userId = response.body.data.user.id;
 

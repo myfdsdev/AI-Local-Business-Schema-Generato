@@ -21,6 +21,7 @@ import './unit/describesLocalBusiness.test.js';
 import './unit/scanSafety.test.js';
 import './api/auth.test.js';
 import './api/passwordReset.test.js';
+import './api/access.test.js';
 import './api/projects.test.js';
 import './api/locations.test.js';
 import './api/workspace.test.js';

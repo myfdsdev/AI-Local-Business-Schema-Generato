@@ -1,5 +1,6 @@
 import { Router } from 'express';
 
+import accessRoutes from './access.routes.js';
 import adminRoutes from './admin.routes.js';
 import authRoutes from './auth.routes.js';
 import catalogRoutes from './catalog.routes.js';
@@ -24,6 +25,7 @@ router.get('/health', (_req, res) => {
 });
 
 router.use('/auth', authRoutes);
+router.use('/access', accessRoutes);
 router.use('/catalog', catalogRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/workspace', workspaceRoutes);

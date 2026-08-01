@@ -6,7 +6,7 @@ import axios from 'axios';
 import logger from '../../config/logger.js';
 import { UnsafeUrlError, assertSafeUrl, isPrivateAddress } from '../../utils/url.js';
 
-export const USER_AGENT = 'LocalSchemaAI-Scanner/1.0 (+https://localschema.ai/bot)';
+export const USER_AGENT = 'RankLocalBiz-Scanner/1.0 (+https://ranklocalbiz.xyz/bot)';
 
 const TIMEOUT_MS = 8_000; // a real page answers well under this; slower isn't worth waiting for
 const MAX_BYTES = 2 * 1024 * 1024; // 2 MB — pages beyond this are not worth parsing

@@ -87,7 +87,7 @@ export function AppLayout() {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4 sm:px-6">
-          <NavLink to="/app/dashboard" aria-label="LocalSchema AI home">
+          <NavLink to="/app/dashboard" aria-label="RankLocalBiz home">
             <Logo />
           </NavLink>
 

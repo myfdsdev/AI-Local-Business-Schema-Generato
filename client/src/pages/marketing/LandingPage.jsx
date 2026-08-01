@@ -118,7 +118,7 @@ export default function LandingPage() {
       </main>
 
       <footer className="mx-auto max-w-6xl px-4 py-8 text-center text-xs text-muted-foreground sm:px-6">
-        © {new Date().getFullYear()} LocalSchema AI. Structured data that helps search engines
+        © {new Date().getFullYear()} RankLocalBiz. Structured data that helps search engines
         understand your business.
       </footer>
     </div>

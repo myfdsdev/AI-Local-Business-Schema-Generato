@@ -14,7 +14,7 @@ export function Logo({ className, iconClassName, showText = true }) {
       >
         <ScanSearch className="h-5 w-5" />
       </span>
-      {showText && <span className="text-foreground">LocalSchema&nbsp;AI</span>}
+      {showText && <span className="text-foreground">RankLocalBiz</span>}
     </span>
   );
 }

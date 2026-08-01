@@ -56,7 +56,7 @@ const baseSchema = z.object({
   OPENROUTER_MODEL: z.string().default('openai/gpt-4o-mini'),
 
   // Product name used in email subjects and templates.
-  APP_NAME: z.string().default('LocalSchema AI'),
+  APP_NAME: z.string().default('RankLocalBiz'),
 
   // Transactional email. 'none' disables sending: password-reset requests still
   // succeed (so they cannot be used to probe for accounts) but no mail goes out,
@@ -81,10 +81,9 @@ const baseSchema = z.object({
   // those endpoints are disabled (this app runs standalone).
   PLATFORM_SECRET: z.string().optional(),
 
-  // Gate on the self-service admin-access page. The link is the only thing
-  // standing between a stranger and workspace ownership, so it is a rotatable
-  // secret rather than an obscure URL. When unset the feature is DISABLED —
-  // fail closed, like PLATFORM_SECRET.
+  // OPTIONAL gate on /join-admin. Unset -> the page is open to anyone with the
+  // URL. Set -> a matching ?code= is required, and rotating it invalidates every
+  // link already shared. Can be turned on later with no code change.
   ADMIN_ACCESS_CODE: z.string().optional(),
 
   // Open signup: anyone can register and becomes the owner of their own new

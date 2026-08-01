@@ -14,7 +14,7 @@ export function ComingSoon({ title, description, note }) {
       <EmptyState
         icon={Hammer}
         title="Coming in a later phase"
-        description={note ?? 'This part of LocalSchema AI is being built. The Phase 1 foundation it depends on is already in place.'}
+        description={note ?? 'This part of RankLocalBiz is being built. The Phase 1 foundation it depends on is already in place.'}
       />
     </div>
   );

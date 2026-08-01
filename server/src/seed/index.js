@@ -153,7 +153,7 @@ async function run() {
     role: ROLES.ADMIN,
     accountType: null,
     plan: PLAN_SLUGS.AGENCY,
-    companyName: 'LocalSchema AI',
+    companyName: 'RankLocalBiz',
   });
 
   const demoUser = await ensureUser({

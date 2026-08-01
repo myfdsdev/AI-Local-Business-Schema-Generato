@@ -17,7 +17,7 @@ async function start() {
 
   const app = createApp();
   const server = app.listen(env.PORT, () => {
-    logger.info(`LocalSchema AI API listening on http://localhost:${env.PORT} (${env.NODE_ENV})`);
+    logger.info(`RankLocalBiz API listening on http://localhost:${env.PORT} (${env.NODE_ENV})`);
   });
 
   /**

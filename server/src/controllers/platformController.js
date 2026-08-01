@@ -47,7 +47,7 @@ export const manifest = asyncHandler(async (_req, res) =>
     message: 'OK',
     data: {
       appId: APP_ID,
-      name: 'LocalSchema AI',
+      name: 'RankLocalBiz',
       description: 'AI-powered Schema.org JSON-LD generator for local businesses.',
       apiVersion: 'v1',
       // Version of the shared workspace contract, NOT of this app. Bump only if

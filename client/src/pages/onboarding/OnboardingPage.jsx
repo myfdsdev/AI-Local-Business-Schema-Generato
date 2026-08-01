@@ -24,7 +24,7 @@ const QUESTIONS = [
   {
     key: 'accountType',
     title: 'What best describes you?',
-    subtitle: 'This tailors LocalSchema AI to how you work.',
+    subtitle: 'This tailors RankLocalBiz to how you work.',
     options: [
       { value: 'local_business', label: 'Local business owner' },
       { value: 'freelancer', label: 'Freelancer' },
@@ -122,7 +122,7 @@ export default function OnboardingPage() {
     try {
       const updated = await authApi.completeOnboarding(onlyAnswered());
       patchUser(updated);
-      toast.success("You're all set. Welcome to LocalSchema AI.");
+      toast.success("You're all set. Welcome to RankLocalBiz.");
       navigate('/app/dashboard', { replace: true });
     } catch (error) {
       toast.error(toApiError(error).message);

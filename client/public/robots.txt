@@ -1,4 +1,4 @@
-# LocalSchema AI
+# RankLocalBiz
 # The marketing pages are public; everything under /app requires a session and
 # has nothing useful for a crawler. Disallowing them keeps login-walled routes
 # out of the index and saves crawl budget for the pages that matter.
@@ -14,4 +14,4 @@ Disallow: /login
 Disallow: /register
 Disallow: /make-og-png.html
 
-Sitemap: https://ai-local-business-schema-generato-client.onrender.com/sitemap.xml
+Sitemap: https://ranklocalbiz.xyz/sitemap.xml

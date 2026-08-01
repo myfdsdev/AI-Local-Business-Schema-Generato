@@ -70,7 +70,7 @@ export default function PricingPage() {
         </div>
 
         <p className="mt-10 text-center text-xs text-muted-foreground">
-          LocalSchema AI helps search engines understand your business. It does not promise
+          RankLocalBiz helps search engines understand your business. It does not promise
           guaranteed Google rankings or rich results.
         </p>
       </main>

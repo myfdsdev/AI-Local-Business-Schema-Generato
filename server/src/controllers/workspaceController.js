@@ -6,10 +6,10 @@ import { listProviders } from '../services/ai/providers.js';
 import { getWorkspace, renameWorkspace } from '../services/workspace/workspaceService.js';
 import { getWorkspaceStats } from '../services/workspace/statsService.js';
 import { signAccessToken, signRefreshToken, setRefreshCookie } from '../services/auth/tokenService.js';
+import { clientUrl } from '../utils/clientUrl.js';
 import { sendCreated, sendSuccess } from '../utils/ApiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
 
-const clientUrl = () => env.CLIENT_URL?.replace(/\/$/, '') ?? '';
 
 /** The caller's own workspace context — used by the UI to show the right nav. */
 export const context = asyncHandler(async (req, res) => {

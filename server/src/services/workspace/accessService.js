@@ -3,6 +3,7 @@ import { env } from '../../config/env.js';
 import logger from '../../config/logger.js';
 import { User, Workspace } from '../../models/index.js';
 import ApiError from '../../utils/ApiError.js';
+import { clientUrl } from '../../utils/clientUrl.js';
 import { generatePassword } from '../../utils/password.js';
 import { DURATIONS, safeEqual } from '../../utils/tokens.js';
 import { sendEmail } from '../email/emailClient.js';
@@ -12,7 +13,11 @@ import {
   welcomeCredentialsEmail,
 } from '../email/templates.js';
 import { acceptInvite, createOwnerInvite, getUsableInvite } from './membershipService.js';
-import { findActiveMembership, generateWorkspaceId } from './workspaceService.js';
+import {
+  createOwnerWithPassword,
+  findActiveMembership,
+  generateWorkspaceId,
+} from './workspaceService.js';
 
 /**
  * Self-service workspace ownership.
@@ -26,7 +31,6 @@ import { findActiveMembership, generateWorkspaceId } from './workspaceService.js
 const CLAIM_TTL_MS = 3 * DURATIONS.DAY;
 const EXPIRES_IN_HOURS = CLAIM_TTL_MS / DURATIONS.HOUR;
 
-const clientUrl = () => env.CLIENT_URL?.replace(/\/$/, '') ?? '';
 
 /**
  * Optional gate on the join-admin page.
@@ -105,6 +109,52 @@ export async function requestAdminAccess({ name, email, code }) {
 }
 
 /**
+ * Direct signup: name + email + password creates the account, the workspace and
+ * the owner membership in one step, with no email round trip.
+ *
+ * SECURITY: an email that already has an account is REFUSED. Accepting a new
+ * password for an existing address would let anyone take over that account
+ * simply by typing its email here.
+ */
+export async function registerWorkspaceOwner({ name, email, password, code }) {
+  assertAccessCode(code);
+
+  const ownerEmail = String(email).toLowerCase().trim();
+  const ownerName = String(name ?? '').trim();
+
+  const existingUser = await User.findOne({ email: ownerEmail }).select('_id').lean();
+  if (existingUser) {
+    throw ApiError.conflict('An account with that email already exists. Sign in instead.', {
+      code: 'EMAIL_IN_USE',
+    });
+  }
+
+  // ONE WORKSPACE PER OWNER — reuse the shell if a previous request created one.
+  let workspace = await Workspace.findOne({ appId: APP_ID, ownerEmail });
+  if (!workspace) {
+    workspace = await Workspace.create({
+      appId: APP_ID,
+      workspaceId: generateWorkspaceId(),
+      name: ownerName,
+      ownerEmail,
+      status: WORKSPACE_STATUS.ACTIVE,
+    });
+  }
+
+  // Reuses the same path the store uses, so the account comes out identical
+  // however it was created.
+  const user = await createOwnerWithPassword({
+    workspaceId: workspace.workspaceId,
+    ownerEmail,
+    ownerName,
+    password,
+  });
+
+  logger.info('Workspace owner registered directly', { workspaceId: workspace.workspaceId });
+  return { user, workspaceId: workspace.workspaceId };
+}
+
+/**
  * Step 2 — claim. Clicking the emailed link creates the account (with a
  * generated password), the owner membership, and hands back a session.
  */
@@ -159,4 +209,4 @@ export async function claimAdminAccess({ token }) {
   return { user, workspaceId, isNewUser };
 }
 
-export default { requestAdminAccess, claimAdminAccess };
+export default { requestAdminAccess, claimAdminAccess, registerWorkspaceOwner };

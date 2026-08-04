@@ -1,7 +1,9 @@
 import { api } from './client';
 
 export const accessApi = {
-  /** Requests workspace access. `code` comes from the secret link's ?code=. */
+  /** Direct signup: creates the account + workspace and returns a session. */
+  registerOwner: (payload) => api.post('/access/register', payload).then((r) => r.data.data),
+  /** Email-link variant. `code` comes from the link's ?code=. */
   request: (payload) => api.post('/access/request', payload).then((r) => r.data.data),
   /** Redeems the emailed link; returns a session. */
   claim: (token) => api.post('/access/claim', { token }).then((r) => r.data.data),

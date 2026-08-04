@@ -3,6 +3,7 @@ import { env } from '../../config/env.js';
 import logger from '../../config/logger.js';
 import { PasswordResetToken, User } from '../../models/index.js';
 import ApiError from '../../utils/ApiError.js';
+import { clientUrl } from '../../utils/clientUrl.js';
 import { DURATIONS, addDuration, generateRawToken, hashToken } from '../../utils/tokens.js';
 import { sendEmail } from '../email/emailClient.js';
 import { passwordResetEmail } from '../email/templates.js';
@@ -10,7 +11,6 @@ import { passwordResetEmail } from '../email/templates.js';
 const TOKEN_TTL_MS = DURATIONS.HOUR; // 60 minutes
 const EXPIRES_IN_MINUTES = TOKEN_TTL_MS / DURATIONS.MINUTE;
 
-const clientUrl = () => env.CLIENT_URL?.replace(/\/$/, '') ?? '';
 
 /**
  * Starts a reset.

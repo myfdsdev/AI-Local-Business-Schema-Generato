@@ -181,6 +181,66 @@ describe('Admin access', () => {
     assert.equal(second.body.code, 'INVALID_TOKEN');
   });
 
+  it('creates a workspace owner directly from the form, with no email step', async () => {
+    const res = await request(getApp()).post('/api/v1/access/register').send({
+      code: CODE,
+      name: 'Gourav Suman',
+      email: 'direct@example.com',
+      password: 'Str0ngPassword!',
+    });
+
+    assert.equal(res.status, 201);
+    assert.ok(res.body.data.accessToken, 'signed in immediately');
+
+    // Workspace, user and owner membership all exist.
+    const workspace = await Workspace.findOne({}).lean();
+    assert.ok(workspace.ownerUserId, 'ownerUserId populated');
+    const membership = await WorkspaceMember.findOne({}).lean();
+    assert.equal(membership.role, 'owner');
+
+    // The chosen password works, and the session reaches a scoped route.
+    const login = await request(getApp())
+      .post('/api/v1/auth/login')
+      .send({ email: 'direct@example.com', password: 'Str0ngPassword!' });
+    assert.equal(login.status, 200);
+
+    const projects = await request(getApp())
+      .get('/api/v1/projects')
+      .set(authHeader(res.body.data.accessToken));
+    assert.equal(projects.status, 200);
+  });
+
+  it('refuses direct signup for an email that already has an account', async () => {
+    // Otherwise anyone could take over an existing account by typing its email
+    // here with a password of their choosing.
+    const { payload } = await registerUser();
+
+    const res = await request(getApp()).post('/api/v1/access/register').send({
+      code: CODE,
+      name: 'Impostor',
+      email: payload.email,
+      password: 'Att4ckerPassword!',
+    });
+
+    assert.equal(res.status, 409);
+    assert.equal(res.body.code, 'EMAIL_IN_USE');
+
+    // The real owner's password is untouched.
+    const login = await request(getApp())
+      .post('/api/v1/auth/login')
+      .send({ email: payload.email, password: VALID_PASSWORD });
+    assert.equal(login.status, 200);
+  });
+
+  it('enforces the password policy on direct signup', async () => {
+    const res = await request(getApp())
+      .post('/api/v1/access/register')
+      .send({ code: CODE, name: 'Weak', email: 'weak@example.com', password: 'short' });
+
+    assert.equal(res.status, 400);
+    assert.equal(await Workspace.countDocuments({}), 0);
+  });
+
   it('refuses a fabricated claim token', async () => {
     const res = await request(getApp())
       .post('/api/v1/access/claim')

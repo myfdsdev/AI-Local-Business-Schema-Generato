@@ -10,12 +10,12 @@ import {
   generateWorkspaceId,
 } from '../services/workspace/workspaceService.js';
 import ApiError from '../utils/ApiError.js';
+import { clientUrl } from '../utils/clientUrl.js';
 import { generatePassword } from '../utils/password.js';
 import { safeEqual } from '../utils/tokens.js';
 import { sendCreated, sendSuccess } from '../utils/ApiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
 
-const clientUrl = () => env.CLIENT_URL?.replace(/\/$/, '') ?? '';
 
 /**
  * Guards the /platform/* endpoints: only the AppsFields hub, which holds the

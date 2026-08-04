@@ -4,6 +4,7 @@ import express from 'express';
 import helmet from 'helmet';
 
 import { env, isProduction } from './config/env.js';
+import logger from './config/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFound } from './middleware/notFound.js';
 import { generalLimiter } from './middleware/rateLimit.js';
@@ -33,19 +34,29 @@ export function createApp() {
 
   // Allowlist, not a wildcard: credentials:true and `origin: *` are mutually
   // exclusive, and the refresh cookie depends on credentialed requests.
-  // CLIENT_URL plus any extra origins listed in CORS_ORIGINS (comma-separated).
+  //
+  // CLIENT_URL is also split on commas. It is documented as a single URL, but
+  // pasting a list into it is an easy mistake that produced one nonsense entry
+  // matching nothing — which blocked EVERY origin, including ones that had been
+  // working. Tolerating it here costs nothing and fails far less confusingly.
   const allowedOrigins = new Set(
-    [env.CLIENT_URL, ...(env.CORS_ORIGINS?.split(',') ?? [])]
+    [...(env.CLIENT_URL?.split(',') ?? []), ...(env.CORS_ORIGINS?.split(',') ?? [])]
       .map((origin) => origin.trim().replace(/\/$/, ''))
       .filter(Boolean),
   );
+  logger.info('CORS allowlist', { origins: [...allowedOrigins] });
+
   app.use(
     cors({
       origin(origin, callback) {
         // No Origin header: same-origin, curl, or a server-side call.
         if (!origin) return callback(null, true);
         if (allowedOrigins.has(origin)) return callback(null, true);
-        return callback(new Error(`Origin ${origin} is not allowed by CORS.`));
+        // `callback(null, false)` — NOT an Error. Throwing here surfaced as a
+        // 500, so a blocked origin looked like a server crash instead of a CORS
+        // decision. Now the response simply carries no allow-origin header.
+        logger.warn('Blocked by CORS', { origin });
+        return callback(null, false);
       },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
